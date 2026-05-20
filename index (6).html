@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FarmDirect UAE</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  .hide { display: none !important; }
+  .toast { position:fixed; top:16px; right:16px; z-index:9999; padding:10px 16px; border-radius:8px; font-size:14px; font-weight:500; opacity:0; transition:opacity .3s; pointer-events:none; }
+  .toast.show { opacity:1; }
+  .fresh-bar { height:6px; border-radius:999px; transition:width .6s; }
+  ::-webkit-scrollbar { width:4px; height:4px; }
+  ::-webkit-scrollbar-thumb { background:#d1d5db; border-radius:999px; }
+</style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+
+<div id="toast" class="toast bg-green-700 text-white"></div>
+
+<div id="app">
+
+  <!-- ═══════════════════════════════════════════
+       LOGIN SCREEN — 3 role tiles
+  ═══════════════════════════════════════════ -->
+  <div id="login-screen" class="min-h-screen bg-gradient-to-br from-green-50 to-gray-50 flex flex-col items-center justify-center p-6">
+    <div class="flex items-center gap-2 mb-8">
+      <div class="w-10 h-10 bg-green-700 rounded-xl flex items-center justify-center text-white text-xl">🌿</div>
+      <span class="text-2xl font-bold">FarmDirect UAE</span>
+    </div>
+    <p class="text-gray-500 mb-8 text-sm">Who are you signing in as?</p>
+
+    <div class="grid grid-cols-3 gap-4 w-full max-w-xl mb-8">
+      <!-- Restaurant -->
+      <button onclick="selectRole('restaurant')" id="tile-restaurant"
+        class="role-tile bg-white border-2 border-gray-200 rounded-2xl p-6 flex flex-col items-center gap-3 hover:border-green-400 hover:shadow-md transition-all cursor-pointer">
+        <span class="text-4xl">🍽️</span>
+        <span class="font-semibold text-gray-800">Restaurant</span>
+        <span class="text-xs text-gray-400">Order fresh produce</span>
+      </button>
+      <!-- Farm -->
+      <button onclick="selectRole('farm')" id="tile-farm"
+        class="role-tile bg-white border-2 border-gray-200 rounded-2xl p-6 flex flex-col items-center gap-3 hover:border-green-400 hover:shadow-md transition-all cursor-pointer">
+        <span class="text-4xl">🌿</span>
+        <span class="font-semibold text-gray-800">Farm</span>
+        <span class="text-xs text-gray-400">Manage your orders</span>
+      </button>
+      <!-- Manager -->
+      <button onclick="selectRole('manager')" id="tile-manager"
+        class="role-tile bg-white border-2 border-gray-200 rounded-2xl p-6 flex flex-col items-center gap-3 hover:border-amber-400 hover:shadow-md transition-all cursor-pointer">
+        <span class="text-4xl">👑</span>
+        <span class="font-semibold text-gray-800">Manager</span>
+        <span class="text-xs text-gray-400">Platform overview</span>
+      </button>
+    </div>
+
+    <!-- Password box (shows after tile selected) -->
+    <div id="password-box" class="hide bg-white rounded-2xl border border-gray-200 shadow-sm p-6 w-full max-w-sm">
+      <p id="password-label" class="text-sm font-medium text-gray-700 mb-3 text-center"></p>
+
+      <!-- Farm dropdown (only for farm role) -->
+      <div id="farm-select-wrap" class="hide mb-3">
+        <label class="text-xs text-gray-500 mb-1 block">Select your farm</label>
+        <select id="farm-select" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white outline-none focus:border-green-500">
+          <option value="">-- Choose farm --</option>
+        </select>
+      </div>
+
+      <input id="password-input" type="password" placeholder="Enter password"
+        class="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500 mb-3"
+        onkeydown="if(event.key==='Enter') checkPassword()" />
+      <button onclick="checkPassword()"
+        class="w-full py-2.5 bg-green-700 text-white rounded-lg text-sm font-medium hover:bg-green-800 transition-colors">
+        Sign in
+      </button>
+      <p id="pw-error" class="text-xs text-red-500 text-center mt-2 hide">Wrong password, try again</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       MAIN APP
+  ═══════════════════════════════════════════ -->
+  <div id="main-app" class="hide flex h-screen">
+
+    <!-- SIDEBAR -->
+    <aside class="w-52 bg-white border-r border-gray-100 flex flex-col shrink-0">
+      <div class="px-4 py-4 border-b border-gray-100">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 bg-green-700 rounded-lg flex items-center justify-center text-white">🌿</div>
+          <div>
+            <p class="font-semibold text-sm leading-tight">FarmDirect</p>
+            <p id="sidebar-role" class="text-xs text-gray-400 leading-tight"></p>
+          </div>
+        </div>
+        <p id="sidebar-name" class="text-xs text-gray-500 mt-2 truncate font-medium"></p>
+      </div>
+      <nav id="sidebar-nav" class="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto"></nav>
+      <div class="px-2 py-3 border-t border-gray-100">
+        <button onclick="signOut()"
+          class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors">
+          ← Sign out
+        </button>
+      </div>
+    </aside>
+
+    <!-- PAGES -->
+    <main class="flex-1 overflow-y-auto">
+
+      <!-- MARKETPLACE -->
+      <div id="page-marketplace" class="page hide flex flex-col h-full">
+        <div class="px-5 py-3 border-b border-gray-100 flex items-center gap-3 bg-white sticky top-0 z-10">
+          <div class="relative flex-1">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+            <input id="market-search" oninput="loadProducts()" type="text" placeholder="Search UAE produce..."
+              class="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg outline-none focus:border-green-500 bg-gray-50" />
+          </div>
+          <button onclick="showPage('cart')"
+            class="relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm border border-gray-200 hover:bg-gray-50">
+            🛒 Cart
+            <span id="cart-badge" class="hide absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">0</span>
+          </button>
+        </div>
+        <div class="px-5 py-2.5 border-b border-gray-100 bg-white flex gap-2 overflow-x-auto" style="scrollbar-width:none">
+          <button onclick="filterCat('all')" id="cat-all" class="cat-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border bg-green-700 text-white border-green-700">🛒 All</button>
+          <button onclick="filterCat('greens')" id="cat-greens" class="cat-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border border-gray-200 text-gray-600 hover:border-green-300">🥬 Greens</button>
+          <button onclick="filterCat('vegetables')" id="cat-vegetables" class="cat-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border border-gray-200 text-gray-600 hover:border-green-300">🍅 Vegetables</button>
+          <button onclick="filterCat('dairy')" id="cat-dairy" class="cat-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border border-gray-200 text-gray-600 hover:border-green-300">🥛 Dairy</button>
+          <button onclick="filterCat('herbs')" id="cat-herbs" class="cat-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border border-gray-200 text-gray-600 hover:border-green-300">🌿 Herbs</button>
+          <button onclick="filterCat('seafood')" id="cat-seafood" class="cat-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border border-gray-200 text-gray-600 hover:border-green-300">🐟 Seafood</button>
+          <button onclick="filterCat('eggs')" id="cat-eggs" class="cat-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border border-gray-200 text-gray-600 hover:border-green-300">🥚 Eggs</button>
+          <button onclick="filterCat('meat')" id="cat-meat" class="cat-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border border-gray-200 text-gray-600 hover:border-green-300">🥩 Meat</button>
+        </div>
+        <div class="flex-1 overflow-y-auto">
+          <div class="mx-5 mt-4 mb-3 bg-green-50 border border-green-200 rounded-xl p-4 flex items-center justify-between">
+            <div><p class="text-sm font-medium text-green-800">Shop directly from UAE farms</p><p class="text-xs text-green-600 mt-0.5">No middlemen · Harvest-fresh · Verified</p></div>
+            <div class="flex items-center gap-1 bg-white border border-green-200 rounded-full px-3 py-1.5 text-xs font-medium text-green-700">⚡ 2–4h delivery</div>
+          </div>
+          <div class="px-5 pb-1 flex items-center justify-between">
+            <p class="text-sm font-semibold text-gray-800">All UAE produce</p>
+            <p id="product-count" class="text-xs text-gray-400"></p>
+          </div>
+          <div id="product-grid" class="px-5 pb-6 grid grid-cols-3 gap-3 mt-2"></div>
+        </div>
+      </div>
+
+      <!-- FARMS BROWSE -->
+      <div id="page-farms" class="page hide p-5">
+        <h1 class="text-xl font-semibold mb-1">UAE Farms</h1>
+        <p class="text-sm text-gray-500 mb-4">Verified local farms directory</p>
+        <div class="flex gap-2 mb-4 overflow-x-auto pb-1" style="scrollbar-width:none">
+          <button onclick="filterEmirate('all')" class="emirate-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border bg-green-700 text-white border-green-700">All UAE</button>
+          <button onclick="filterEmirate('Dubai')" class="emirate-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border border-gray-200 text-gray-600">📍 Dubai</button>
+          <button onclick="filterEmirate('Abu Dhabi')" class="emirate-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border border-gray-200 text-gray-600">📍 Abu Dhabi</button>
+          <button onclick="filterEmirate('Al Ain')" class="emirate-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border border-gray-200 text-gray-600">📍 Al Ain</button>
+          <button onclick="filterEmirate('RAK')" class="emirate-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border border-gray-200 text-gray-600">📍 RAK</button>
+        </div>
+        <div id="farms-grid" class="grid grid-cols-2 gap-3"></div>
+      </div>
+
+      <!-- FARM DETAIL -->
+      <div id="page-farm-detail" class="page hide p-5">
+        <button onclick="showPage('farms')" class="text-sm text-gray-500 hover:text-gray-800 mb-4 flex items-center gap-1">← Back to farms</button>
+        <div id="farm-detail-content"></div>
+      </div>
+
+      <!-- CART -->
+      <div id="page-cart" class="page hide flex h-full">
+        <div class="flex-1 overflow-y-auto p-5">
+          <h1 class="text-xl font-semibold mb-4">Your cart</h1>
+          <div id="cart-items-list"></div>
+          <div class="mb-5">
+            <p class="text-sm font-semibold text-gray-800 mb-3">Delivery speed</p>
+            <div class="grid grid-cols-3 gap-3">
+              <button onclick="setDelivery('express')" id="del-express" class="delivery-opt p-3 rounded-xl border border-green-500 bg-green-50 text-center">
+                <div class="text-2xl mb-1">⚡</div><p class="text-xs font-medium">Express</p><p class="text-xs text-green-600">2–4 hours</p><p class="text-xs text-gray-400">AED 15</p>
+              </button>
+              <button onclick="setDelivery('morning')" id="del-morning" class="delivery-opt p-3 rounded-xl border border-gray-200 text-center">
+                <div class="text-2xl mb-1">🌅</div><p class="text-xs font-medium">Morning</p><p class="text-xs text-green-600">By 8AM</p><p class="text-xs text-gray-400">AED 8</p>
+              </button>
+              <button onclick="setDelivery('schedule')" id="del-schedule" class="delivery-opt p-3 rounded-xl border border-gray-200 text-center">
+                <div class="text-2xl mb-1">📅</div><p class="text-xs font-medium">Scheduled</p><p class="text-xs text-green-600">Pick time</p><p class="text-xs text-gray-400">Free</p>
+              </button>
+            </div>
+          </div>
+          <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-3 mb-5">
+            <span class="text-amber-500 text-xl shrink-0">👑</span>
+            <div class="flex-1"><p class="text-sm font-medium text-amber-800">FarmDirect Prime</p><p class="text-xs text-amber-600">Free express delivery + priority stock</p></div>
+            <button class="text-xs font-semibold text-amber-700 bg-amber-100 px-3 py-1.5 rounded-lg">Coming soon</button>
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-700">Delivery notes (optional)</label>
+            <input id="delivery-notes" type="text" placeholder="e.g. call on arrival, loading bay B"
+              class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" />
+          </div>
+        </div>
+        <div class="w-64 border-l border-gray-100 bg-gray-50 p-4 flex flex-col shrink-0">
+          <p class="text-sm font-semibold text-gray-800 mb-4">Order summary</p>
+          <div id="cart-summary-items" class="space-y-2 mb-4 flex-1"></div>
+          <div class="border-t border-gray-200 pt-3 space-y-2">
+            <div class="flex justify-between text-sm text-gray-500"><span>Subtotal</span><span id="sum-subtotal">AED 0</span></div>
+            <div class="flex justify-between text-sm text-gray-500"><span>Delivery</span><span id="sum-delivery">AED 15</span></div>
+            <div class="flex justify-between text-sm text-gray-500"><span>Platform fee (5%)</span><span id="sum-fee">AED 0</span></div>
+            <div class="flex justify-between text-base font-semibold text-gray-900 pt-2 border-t border-gray-200"><span>Total</span><span id="sum-total">AED 0</span></div>
+          </div>
+          <div id="cart-savings-msg" class="mt-3 bg-green-50 border border-green-100 rounded-lg p-2.5 text-xs text-green-700"></div>
+          <button onclick="placeOrder()" class="w-full py-2.5 bg-green-700 text-white rounded-lg text-sm font-medium hover:bg-green-800 mt-4">⚡ Place order</button>
+          <button onclick="showPage('marketplace')" class="text-xs text-green-700 hover:underline text-center mt-3">← Continue shopping</button>
+        </div>
+      </div>
+
+      <!-- MY ORDERS (restaurant) -->
+      <div id="page-orders" class="page hide p-5 max-w-3xl">
+        <h1 class="text-xl font-semibold mb-1">My Orders</h1>
+        <p class="text-sm text-gray-500 mb-4">All your direct-farm orders</p>
+        <div id="orders-list" class="space-y-2"></div>
+      </div>
+
+      <!-- FRESHNESS -->
+      <div id="page-freshness" class="page hide p-5 max-w-3xl">
+        <div class="flex items-center justify-between mb-5">
+          <div><h1 class="text-xl font-semibold">Freshness tracker</h1><p class="text-sm text-gray-500 mt-0.5">Live shelf-life of your inventory</p></div>
+          <button onclick="showPage('marketplace')" class="px-4 py-2 bg-green-700 text-white rounded-lg text-sm font-medium">🔄 Reorder</button>
+        </div>
+        <div id="freshness-content"></div>
+      </div>
+
+      <!-- SAVINGS -->
+      <div id="page-savings" class="page hide p-5 max-w-3xl">
+        <h1 class="text-xl font-semibold mb-1">Your savings</h1>
+        <p class="text-sm text-gray-500 mb-5">Money saved buying direct from UAE farms</p>
+        <div id="savings-content"></div>
+      </div>
+
+      <!-- FARM DASHBOARD -->
+      <div id="page-farm-dashboard" class="page hide p-5 max-w-3xl">
+        <h1 class="text-xl font-semibold mb-1">Farm dashboard</h1>
+        <div id="farm-dashboard-content"></div>
+      </div>
+
+      <!-- FARM ORDERS -->
+      <div id="page-farm-orders" class="page hide p-5 max-w-3xl">
+        <h1 class="text-xl font-semibold mb-1">Incoming orders</h1>
+        <p class="text-sm text-gray-500 mb-4">Orders from restaurants</p>
+        <div id="farm-orders-list" class="space-y-3"></div>
+      </div>
+
+      <!-- FARM PRODUCTS -->
+      <div id="page-farm-products" class="page hide p-5 max-w-3xl">
+        <div class="flex items-center justify-between mb-5">
+          <div><h1 class="text-xl font-semibold">My products</h1><p class="text-sm text-gray-500 mt-0.5">What restaurants can order</p></div>
+          <button onclick="toggleProductForm()" class="px-4 py-2 bg-green-700 text-white rounded-lg text-sm font-medium">+ Add product</button>
+        </div>
+        <div id="product-form" class="hide border border-green-200 bg-green-50 rounded-xl p-4 mb-5">
+          <p class="text-sm font-semibold mb-3">New product</p>
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div><label class="text-xs font-medium text-gray-700">Name</label><input id="p-name" type="text" placeholder="e.g. Mixed salad greens" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" /></div>
+            <div><label class="text-xs font-medium text-gray-700">Emoji</label><input id="p-emoji" type="text" value="🌿" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" /></div>
+          </div>
+          <div class="grid grid-cols-3 gap-3 mb-3">
+            <div><label class="text-xs font-medium text-gray-700">Category</label>
+              <select id="p-category" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white outline-none focus:border-green-500">
+                <option value="greens">Greens</option><option value="vegetables">Vegetables</option><option value="dairy">Dairy</option><option value="herbs">Herbs</option><option value="seafood">Seafood</option><option value="eggs">Eggs</option><option value="meat">Meat</option>
+              </select></div>
+            <div><label class="text-xs font-medium text-gray-700">Price (AED)</label><input id="p-price" type="number" step="0.01" placeholder="0.00" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" /></div>
+            <div><label class="text-xs font-medium text-gray-700">Unit</label>
+              <select id="p-unit" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white outline-none focus:border-green-500">
+                <option>kg</option><option>g</option><option>litre</option><option>dozen</option><option>bunch</option><option>unit</option><option>head</option><option>box</option>
+              </select></div>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div><label class="text-xs font-medium text-gray-700">Min order qty</label><input id="p-min-qty" type="number" value="1" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" /></div>
+            <div><label class="text-xs font-medium text-gray-700">Freshness (days)</label><input id="p-freshness" type="number" value="3" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" /></div>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="saveProduct()" class="px-4 py-2 bg-green-700 text-white rounded-lg text-sm font-medium hover:bg-green-800">Save</button>
+            <button onclick="toggleProductForm()" class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50">Cancel</button>
+          </div>
+        </div>
+        <div id="my-products-list" class="space-y-2"></div>
+      </div>
+
+      <!-- FARM PROFILE -->
+      <div id="page-farm-profile" class="page hide p-5 max-w-2xl">
+        <h1 class="text-xl font-semibold mb-1">Farm profile</h1>
+        <p class="text-sm text-gray-500 mb-5">Your details shown to restaurants</p>
+        <div id="verification-status" class="rounded-xl p-4 mb-5 bg-amber-50 border border-amber-200">
+          <p class="text-sm font-medium text-amber-800">🛡️ Verification pending — FarmDirect team will review your UAE farm license</p>
+        </div>
+        <div class="space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div><label class="text-sm font-medium text-gray-700">Farm name</label><input id="sp-name" type="text" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" /></div>
+            <div><label class="text-sm font-medium text-gray-700">Category</label>
+              <select id="sp-category" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white outline-none focus:border-green-500">
+                <option value="greens">Greens</option><option value="vegetables">Vegetables</option><option value="dairy">Dairy</option><option value="herbs">Herbs</option><option value="seafood">Seafood</option><option value="eggs">Eggs</option><option value="meat">Meat</option>
+              </select></div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div><label class="text-sm font-medium text-gray-700">Phone</label><input id="sp-phone" type="text" placeholder="+971..." class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" /></div>
+            <div><label class="text-sm font-medium text-gray-700">City / Emirate</label><input id="sp-city" type="text" placeholder="Dubai" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" /></div>
+          </div>
+          <div><label class="text-sm font-medium text-gray-700">About your farm</label>
+            <textarea id="sp-description" rows="3" placeholder="Tell restaurants about your farm..."
+              class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500 resize-none"></textarea></div>
+          <div class="grid grid-cols-2 gap-4">
+            <div><label class="text-sm font-medium text-gray-700">Avg delivery (hours)</label><input id="sp-lead" type="number" value="24" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" /></div>
+            <div><label class="text-sm font-medium text-gray-700">Min order (AED)</label><input id="sp-min-order" type="number" value="0" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" /></div>
+          </div>
+          <div class="flex items-center gap-2"><input id="sp-urgent" type="checkbox" /><label for="sp-urgent" class="text-sm text-gray-700">Accept urgent / same-day orders</label></div>
+          <button onclick="saveFarmProfile()" class="px-4 py-2 bg-green-700 text-white rounded-lg text-sm font-medium hover:bg-green-800">Save profile</button>
+        </div>
+      </div>
+
+      <!-- CEO / MANAGER DASHBOARD -->
+      <div id="page-manager" class="page hide p-5 max-w-4xl">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-semibold">👑 CEO Dashboard</h1>
+            <p class="text-sm text-gray-500 mt-0.5">FarmDirect UAE — Platform Overview</p>
+          </div>
+          <div class="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full">
+            <span class="text-amber-500">👑</span>
+            <span class="text-xs font-medium text-amber-700">Angelina — CEO & Founder</span>
+          </div>
+        </div>
+        <div id="mgr-stats" class="grid grid-cols-4 gap-3 mb-6"></div>
+        <div class="grid grid-cols-2 gap-5 mb-6">
+          <div>
+            <p class="text-sm font-semibold text-gray-800 mb-3">💰 Revenue breakdown</p>
+            <div id="mgr-revenue" class="bg-white border border-gray-100 rounded-xl p-4 space-y-3"></div>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-gray-800 mb-3">🌿 Farm verification queue</p>
+            <div id="mgr-farm-queue" class="space-y-2"></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-5">
+          <div>
+            <p class="text-sm font-semibold text-gray-800 mb-3">🍽️ Restaurants</p>
+            <div id="mgr-restaurants" class="space-y-2"></div>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-gray-800 mb-3">📦 Recent orders</p>
+            <div id="mgr-orders" class="space-y-2"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MANAGER — ALL FARMS -->
+      <div id="page-mgr-farms" class="page hide p-5 max-w-3xl">
+        <h1 class="text-xl font-semibold mb-1">🌿 All Farms</h1>
+        <p class="text-sm text-gray-500 mb-4">Verify and manage UAE farms</p>
+        <div id="mgr-all-farms" class="space-y-2"></div>
+      </div>
+
+      <!-- MANAGER — ALL ORDERS -->
+      <div id="page-mgr-orders" class="page hide p-5 max-w-3xl">
+        <h1 class="text-xl font-semibold mb-1">📦 All Orders</h1>
+        <p class="text-sm text-gray-500 mb-4">Every order on the platform</p>
+        <div id="mgr-all-orders" class="space-y-2"></div>
+      </div>
+
+      <!-- MANAGER — ALL RESTAURANTS -->
+      <div id="page-mgr-restaurants" class="page hide p-5 max-w-3xl">
+        <h1 class="text-xl font-semibold mb-1">🍽️ Restaurants</h1>
+        <p class="text-sm text-gray-500 mb-4">All restaurants signed up</p>
+        <div id="mgr-all-restaurants" class="space-y-2"></div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+// ── SUPABASE ─────────────────────────────────────────────────────────
+const { createClient } = supabase;
+const sb = createClient(
+  'https://pbvcbsvpipknkgtvtiii.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBidmNic3ZwaXBrbmtndHZ0aWlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMTI5OTIsImV4cCI6MjA5NDU4ODk5Mn0.cqq-nIeChdsOSUqV3aWp_JwLVlxdv-aEK2Dt-JRBisU'
+);
+
+// ── PASSWORDS ────────────────────────────────────────────────────────
+const PASSWORDS = { restaurant: '123456', farm: '1234', manager: '54321' };
+
+// ── STATE ────────────────────────────────────────────────────────────
+let currentRole = null;      // 'restaurant' | 'farm' | 'manager'
+let currentFarm = null;      // supplier row for logged-in farm
+let currentRestaurant = null;// fake restaurant session
+let cart = JSON.parse(localStorage.getItem('fd_cart') || '[]');
+let selectedDelivery = 'express';
+let currentCat = 'all';
+let currentEmirate = 'all';
+
+// ── TOAST ────────────────────────────────────────────────────────────
+function toast(msg, type='success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast show ${type==='error'?'bg-red-600':'bg-green-700'} text-white`;
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ── LOGIN FLOW ───────────────────────────────────────────────────────
+let selectedRole = null;
+
+async function selectRole(role) {
+  selectedRole = role;
+  // highlight selected tile
+  document.querySelectorAll('.role-tile').forEach(t => {
+    t.classList.remove('border-green-500','border-amber-500','shadow-md');
+    t.classList.add('border-gray-200');
+  });
+  const tile = document.getElementById('tile-' + role);
+  tile.classList.remove('border-gray-200');
+  tile.classList.add(role === 'manager' ? 'border-amber-500' : 'border-green-500', 'shadow-md');
+
+  // Show password box
+  document.getElementById('password-box').classList.remove('hide');
+  document.getElementById('pw-error').classList.add('hide');
+  document.getElementById('password-input').value = '';
+  document.getElementById('password-input').focus();
+
+  const labels = { restaurant: '🍽️ Restaurant password', farm: '🌿 Farm password', manager: '👑 Manager password' };
+  document.getElementById('password-label').textContent = labels[role];
+
+  // Farm dropdown
+  if (role === 'farm') {
+    document.getElementById('farm-select-wrap').classList.remove('hide');
+    const { data } = await sb.from('suppliers').select('id, name').eq('active', true).order('name');
+    const sel = document.getElementById('farm-select');
+    sel.innerHTML = '<option value="">-- Choose your farm --</option>' +
+      (data || []).map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+  } else {
+    document.getElementById('farm-select-wrap').classList.add('hide');
+  }
+}
+
+async function checkPassword() {
+  const pw = document.getElementById('password-input').value;
+  const err = document.getElementById('pw-error');
+
+  if (pw !== PASSWORDS[selectedRole]) {
+    err.classList.remove('hide');
+    return;
+  }
+  err.classList.add('hide');
+
+  if (selectedRole === 'farm') {
+    const farmId = document.getElementById('farm-select').value;
+    if (!farmId) { toast('Please select your farm', 'error'); return; }
+    const { data } = await sb.from('suppliers').select('*').eq('id', farmId).single();
+    currentFarm = data;
+  }
+
+  if (selectedRole === 'restaurant') {
+    // Use a generic restaurant session (no auth needed)
+    currentRestaurant = { id: 'demo-restaurant', name: 'My Restaurant' };
+  }
+
+  currentRole = selectedRole;
+  enterApp();
+}
+
+function enterApp() {
+  document.getElementById('login-screen').classList.add('hide');
+  document.getElementById('main-app').classList.remove('hide');
+
+  const roleLabels = { restaurant: '🍽️ Restaurant', farm: '🌿 Farm', manager: '👑 CEO' };
+  document.getElementById('sidebar-role').textContent = roleLabels[currentRole];
+  document.getElementById('sidebar-name').textContent =
+    currentRole === 'farm' ? currentFarm?.name :
+    currentRole === 'manager' ? 'Angelina' : 'My Restaurant';
+
+  buildNav();
+  updateCartBadge();
+
+  if (currentRole === 'restaurant') showPage('marketplace');
+  else if (currentRole === 'farm') showPage('farm-dashboard');
+  else showPage('manager');
+}
+
+function signOut() {
+  currentRole = null; currentFarm = null; currentRestaurant = null;
+  document.getElementById('main-app').classList.add('hide');
+  document.getElementById('login-screen').classList.remove('hide');
+  document.getElementById('password-box').classList.add('hide');
+  document.querySelectorAll('.role-tile').forEach(t => { t.classList.remove('border-green-500','border-amber-500','shadow-md'); t.classList.add('border-gray-200'); });
+}
+
+// ── NAV ──────────────────────────────────────────────────────────────
+function buildNav() {
+  const items = {
+    restaurant: [['marketplace','🛒','Marketplace'],['farms','🌿','UAE Farms'],['cart','🛒','Cart'],['orders','📋','My Orders'],['freshness','🌱','Freshness'],['savings','💰','Savings']],
+    farm:       [['farm-dashboard','🏠','Dashboard'],['farm-orders','📋','Orders'],['farm-products','📦','My Products'],['farm-profile','🏪','Farm Profile']],
+    manager:    [['manager','👑','CEO Dashboard'],['mgr-farms','🌿','Farms'],['mgr-orders','📦','All Orders'],['mgr-restaurants','🍽️','Restaurants']],
+  }[currentRole] || [];
+
+  document.getElementById('sidebar-nav').innerHTML = items.map(([page, icon, label]) =>
+    `<button onclick="showPage('${page}')" id="nav-${page}"
+      class="nav-btn w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-colors text-left">
+      <span>${icon}</span>${label}
+      ${page==='cart'?'<span id="cart-nav-badge" class="ml-auto text-xs bg-red-500 text-white px-1.5 py-0.5 rounded-full hide">0</span>':''}
+    </button>`
+  ).join('');
+}
+
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.add('hide'));
+  document.querySelectorAll('.nav-btn').forEach(b => { b.classList.remove('bg-green-50','text-green-700','font-medium'); b.classList.add('text-gray-500'); });
+  const el = document.getElementById('page-' + page);
+  if (el) el.classList.remove('hide');
+  const nb = document.getElementById('nav-' + page);
+  if (nb) { nb.classList.add('bg-green-50','text-green-700','font-medium'); nb.classList.remove('text-gray-500'); }
+
+  if (page==='marketplace')   loadProducts();
+  if (page==='farms')         loadFarms();
+  if (page==='cart')          renderCart();
+  if (page==='orders')        loadOrders();
+  if (page==='freshness')     loadFreshness();
+  if (page==='savings')       loadSavings();
+  if (page==='farm-dashboard')loadFarmDashboard();
+  if (page==='farm-orders')   loadFarmOrders();
+  if (page==='farm-products') loadMyProducts();
+  if (page==='farm-profile')  loadFarmProfile();
+  if (page==='manager')       loadManagerDashboard();
+  if (page==='mgr-farms')     loadMgrFarms();
+  if (page==='mgr-orders')    loadMgrOrders();
+  if (page==='mgr-restaurants') loadMgrRestaurants();
+}
+
+// ── MARKETPLACE ──────────────────────────────────────────────────────
+async function loadProducts() {
+  const search = document.getElementById('market-search')?.value || '';
+  let q = sb.from('products')
+    .select('*, suppliers(name, lead_time_hours, certifications, is_verified)')
+    .eq('active', true).eq('in_stock', true);
+  if (currentCat !== 'all') q = q.eq('category', currentCat);
+  if (search) q = q.ilike('name', `%${search}%`);
+  const { data } = await q.order('name');
+  const grid = document.getElementById('product-grid');
+  const count = document.getElementById('product-count');
+  count.textContent = `${data?.length || 0} items`;
+  if (!data?.length) { grid.innerHTML = '<div class="col-span-3 text-center py-12 text-gray-400">No products found</div>'; return; }
+  grid.innerHTML = data.map(p => {
+    const certs = p.suppliers?.certifications || [];
+    const pj = JSON.stringify(p).replace(/"/g,'&quot;');
+    return `<div class="bg-white border border-gray-100 rounded-xl overflow-hidden hover:border-green-200 hover:shadow-sm transition-all">
+      <div class="h-24 bg-gray-50 flex items-center justify-center text-4xl">${p.emoji||'🌿'}</div>
+      <div class="p-3">
+        <p class="text-sm font-medium truncate">${p.name}</p>
+        <p class="text-xs text-gray-500 mb-2">📍 ${p.suppliers?.name||''}</p>
+        <div class="flex gap-1 flex-wrap mb-2">
+          ${p.suppliers?.is_verified?'<span class="text-xs px-1.5 py-0.5 rounded bg-green-50 text-green-700 border border-green-200 font-medium">✓ Verified</span>':''}
+          ${certs.includes('organic')?'<span class="text-xs px-1.5 py-0.5 rounded bg-green-50 text-green-800 border border-green-200 font-medium">Organic</span>':''}
+          ${certs.includes('halal')?'<span class="text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 font-medium">Halal</span>':''}
+        </div>
+        <div class="flex items-end justify-between">
+          <div>
+            <span class="text-sm font-semibold">AED ${Number(p.price_per_unit).toFixed(0)}</span>
+            <span class="text-xs text-gray-400">/${p.unit}</span>
+            <div class="text-xs text-gray-400 mt-0.5">🕐 ${p.suppliers?.lead_time_hours||2}h</div>
+          </div>
+          <button onclick="addToCart(JSON.parse(this.dataset.p))" data-p="${pj}"
+            class="w-8 h-8 bg-green-700 text-white rounded-full flex items-center justify-center hover:bg-green-800 text-lg leading-none">+</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterCat(cat) {
+  currentCat = cat;
+  document.querySelectorAll('.cat-btn').forEach(b => { b.classList.remove('bg-green-700','text-white','border-green-700'); b.classList.add('border-gray-200','text-gray-600'); });
+  const btn = document.getElementById('cat-' + cat);
+  if (btn) { btn.classList.add('bg-green-700','text-white','border-green-700'); btn.classList.remove('border-gray-200','text-gray-600'); }
+  loadProducts();
+}
+
+// ── FARMS ────────────────────────────────────────────────────────────
+async function loadFarms() {
+  let q = sb.from('suppliers').select('*').eq('active', true).order('rating', {ascending:false});
+  if (currentEmirate !== 'all') q = q.ilike('city', `%${currentEmirate}%`);
+  const { data } = await q;
+  const grid = document.getElementById('farms-grid');
+  if (!data?.length) { grid.innerHTML = '<div class="col-span-2 text-center py-12 text-gray-400">No farms found</div>'; return; }
+  grid.innerHTML = data.map(f => `
+    <div onclick="showFarmDetail('${f.id}')" class="bg-white border border-gray-100 rounded-xl p-4 cursor-pointer hover:border-green-200 hover:shadow-sm transition-all">
+      <div class="flex items-start gap-3 mb-3">
+        <div class="w-11 h-11 rounded-xl bg-green-50 border border-green-100 flex items-center justify-center text-xl shrink-0">${f.emoji||'🌿'}</div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium truncate">${f.name} ${f.is_verified?'✓':''}</p>
+          <p class="text-xs text-gray-400">📍 ${f.city||'UAE'}</p>
+        </div>
+      </div>
+      <div class="flex gap-1 flex-wrap mb-3">
+        ${(f.certifications||[]).slice(0,3).map(c=>`<span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200 capitalize">${c}</span>`).join('')}
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="text-xs text-amber-500">⭐ ${f.rating||'—'} (${f.total_orders||0})</span>
+        <span class="text-xs text-gray-400">🕐 ${f.lead_time_hours||'?'}h</span>
+        ${f.accepts_urgent?'<span class="text-xs text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full">⚡ Urgent</span>':''}
+      </div>
+      <button class="mt-3 w-full py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg">Browse products →</button>
+    </div>`).join('');
+}
+
+function filterEmirate(e) {
+  currentEmirate = e;
+  document.querySelectorAll('.emirate-btn').forEach(b => { b.className = 'emirate-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border border-gray-200 text-gray-600'; });
+  event.target.className = 'emirate-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border bg-green-700 text-white border-green-700';
+  loadFarms();
+}
+
+async function showFarmDetail(id) {
+  showPage('farm-detail');
+  const { data: farm } = await sb.from('suppliers').select('*, products(*), reviews(*, restaurants(name))').eq('id', id).single();
+  if (!farm) return;
+  const badges = [farm.is_verified && '✓ Verified', farm.gov_licensed && '🏛️ Gov. Licensed', ...(farm.certifications||[])].filter(Boolean);
+  document.getElementById('farm-detail-content').innerHTML = `
+    <div class="flex items-start gap-4 mb-4">
+      <div class="w-16 h-16 rounded-xl bg-green-50 border border-green-100 flex items-center justify-center text-3xl shrink-0">${farm.emoji||'🌿'}</div>
+      <div class="flex-1">
+        <h1 class="text-xl font-semibold">${farm.name}</h1>
+        <p class="text-sm text-gray-500 mt-1">📍 ${farm.city}, UAE</p>
+        ${farm.description?`<p class="text-sm text-gray-500 mt-2">${farm.description}</p>`:''}
+        <div class="flex flex-wrap gap-2 mt-2">${badges.map(b=>`<span class="text-xs px-2.5 py-1 rounded-full border bg-green-50 text-green-700 border-green-200 font-medium">${b}</span>`).join('')}</div>
+      </div>
+    </div>
+    <div class="grid grid-cols-4 gap-3 mb-5">
+      ${[['Rating',farm.rating?farm.rating+' ⭐':'—'],['Orders',farm.total_orders||0],['Delivery',(farm.lead_time_hours||'?')+'h'],['Products',farm.products?.length||0]].map(([l,v])=>`<div class="bg-gray-50 rounded-lg p-2.5 text-center"><p class="text-base font-semibold">${v}</p><p class="text-xs text-gray-400 mt-0.5">${l}</p></div>`).join('')}
+    </div>
+    <p class="text-sm font-semibold mb-3">Products from this farm</p>
+    <div class="grid grid-cols-2 gap-3">
+      ${(farm.products||[]).map(p=>{
+        const pj = JSON.stringify({...p, supplier_id: farm.id, supplier_name: farm.name, suppliers:{name:farm.name,lead_time_hours:farm.lead_time_hours}}).replace(/"/g,'&quot;');
+        return `<div class="border border-gray-100 rounded-xl p-3">
+          <p class="text-sm font-medium">${p.emoji||'🌿'} ${p.name}</p>
+          <p class="text-xs text-gray-400 mt-0.5">${p.freshness_days}d shelf life · min ${p.min_quantity}${p.unit}</p>
+          <div class="flex items-center justify-between mt-3">
+            <div><span class="text-sm font-semibold">AED ${Number(p.price_per_unit).toFixed(0)}</span><span class="text-xs text-gray-400">/${p.unit}</span></div>
+            <button onclick="addToCart(JSON.parse(this.dataset.p))" data-p="${pj}" class="w-8 h-8 bg-green-700 text-white rounded-full flex items-center justify-center hover:bg-green-800 text-lg">+</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+// ── CART ─────────────────────────────────────────────────────────────
+function addToCart(product) {
+  const existing = cart.find(i => i.id === product.id);
+  if (existing) cart = cart.map(i => i.id === product.id ? {...i, qty: i.qty + 1} : i);
+  else cart.push({...product, qty: product.min_quantity || 1});
+  localStorage.setItem('fd_cart', JSON.stringify(cart));
+  updateCartBadge();
+  toast(`${product.name} added 🛒`);
+}
+
+function updateCartBadge() {
+  const count = cart.reduce((s,i) => s + i.qty, 0);
+  ['cart-badge','cart-nav-badge'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = count;
+    count > 0 ? el.classList.remove('hide') : el.classList.add('hide');
+  });
+}
+
+function setDelivery(type) {
+  selectedDelivery = type;
+  document.querySelectorAll('.delivery-opt').forEach(b => { b.classList.remove('border-green-500','bg-green-50'); b.classList.add('border-gray-200'); });
+  const el = document.getElementById('del-' + type);
+  if (el) { el.classList.add('border-green-500','bg-green-50'); el.classList.remove('border-gray-200'); }
+  renderCart();
+}
+
+function renderCart() {
+  const fees = {express:15, morning:8, schedule:0};
+  const deliveryFee = fees[selectedDelivery] || 15;
+  const subtotal = cart.reduce((s,i) => s + i.qty * Number(i.price_per_unit), 0);
+  const platformFee = subtotal * 0.05;
+  const total = subtotal + deliveryFee + platformFee;
+  const itemsList = document.getElementById('cart-items-list');
+  const summaryItems = document.getElementById('cart-summary-items');
+
+  if (!cart.length) {
+    itemsList.innerHTML = `<div class="text-center py-16 text-gray-400"><p class="text-4xl mb-3">🛒</p><p class="font-medium text-gray-500 mb-1">Your cart is empty</p><button onclick="showPage('marketplace')" class="mt-3 px-4 py-2 bg-green-700 text-white rounded-lg text-sm">Browse marketplace</button></div>`;
+    summaryItems.innerHTML = '';
+    return;
+  }
+
+  const bySupplier = cart.reduce((acc, item) => {
+    const key = item.supplier_id || 'unknown';
+    if (!acc[key]) acc[key] = {name: item.supplier_name || item.suppliers?.name || 'Farm', items:[]};
+    acc[key].items.push(item);
+    return acc;
+  }, {});
+
+  itemsList.innerHTML = Object.values(bySupplier).map(group => `
+    <div class="mb-5">
+      <p class="text-sm font-medium text-gray-700 mb-2">📍 ${group.name}</p>
+      <div class="border border-gray-100 rounded-xl overflow-hidden">
+        ${group.items.map((item, idx) => `
+          <div class="flex items-center gap-3 p-3 ${idx < group.items.length-1 ? 'border-b border-gray-100':''}">
+            <div class="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center text-xl shrink-0">${item.emoji||'🌿'}</div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium">${item.name}</p>
+              <p class="text-xs text-gray-400">AED ${Number(item.price_per_unit).toFixed(0)}/${item.unit}</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="changeQty('${item.id}',-1)" class="w-6 h-6 rounded-full border border-gray-200 flex items-center justify-center text-sm hover:bg-gray-50">−</button>
+              <span class="text-sm w-10 text-center font-medium">${item.qty}${item.unit}</span>
+              <button onclick="changeQty('${item.id}',1)" class="w-6 h-6 rounded-full border border-gray-200 flex items-center justify-center text-sm hover:bg-gray-50">+</button>
+            </div>
+            <div class="text-sm font-semibold w-16 text-right">AED ${(item.qty * Number(item.price_per_unit)).toFixed(0)}</div>
+            <button onclick="removeFromCart('${item.id}')" class="text-gray-300 hover:text-red-400 ml-1 text-lg">×</button>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+
+  summaryItems.innerHTML = cart.map(i => `<div class="flex justify-between text-xs"><span class="text-gray-600 truncate mr-2">${i.name} ×${i.qty}</span><span class="font-medium shrink-0">AED ${(i.qty*Number(i.price_per_unit)).toFixed(0)}</span></div>`).join('');
+  document.getElementById('sum-subtotal').textContent = `AED ${subtotal.toFixed(0)}`;
+  document.getElementById('sum-delivery').textContent = deliveryFee===0 ? 'Free' : `AED ${deliveryFee}`;
+  document.getElementById('sum-fee').textContent = `AED ${platformFee.toFixed(0)}`;
+  document.getElementById('sum-total').textContent = `AED ${total.toFixed(0)}`;
+  document.getElementById('cart-savings-msg').textContent = `Saving ~AED ${(subtotal*0.15).toFixed(0)} vs middleman prices 💚`;
+}
+
+function changeQty(id, delta) {
+  cart = cart.map(i => i.id===id ? {...i, qty: Math.max(1, i.qty+delta)} : i);
+  localStorage.setItem('fd_cart', JSON.stringify(cart));
+  updateCartBadge(); renderCart();
+}
+function removeFromCart(id) {
+  cart = cart.filter(i => i.id !== id);
+  localStorage.setItem('fd_cart', JSON.stringify(cart));
+  updateCartBadge(); renderCart();
+}
+
+async function placeOrder() {
+  if (!cart.length) return toast('Cart is empty', 'error');
+  const deliveryFee = {express:15, morning:8, schedule:0}[selectedDelivery] || 15;
+  const notes = document.getElementById('delivery-notes')?.value || '';
+  const bySupplier = cart.reduce((acc, item) => {
+    const key = item.supplier_id;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(item);
+    return acc;
+  }, {});
+
+  try {
+    for (const [supplierId, items] of Object.entries(bySupplier)) {
+      const subtotal = items.reduce((s,i) => s + i.qty * Number(i.price_per_unit), 0);
+      const platformFee = parseFloat((subtotal * 0.05).toFixed(2));
+      const total = subtotal + deliveryFee + platformFee;
+      const orderNumber = 'FD-' + Math.floor(Math.random()*90000+10000);
+      const { data: order, error } = await sb.from('orders').insert({
+        order_number: orderNumber,
+        restaurant_id: null, // no auth required
+        supplier_id: supplierId,
+        subtotal, platform_fee: platformFee, total,
+        is_urgent: selectedDelivery === 'express',
+        delivery_notes: notes, status: 'pending'
+      }).select().single();
+      if (error) throw error;
+      await sb.from('order_items').insert(items.map(i => ({
+        order_id: order.id, product_id: i.id, product_name: i.name,
+        unit: i.unit, quantity: i.qty, unit_price: Number(i.price_per_unit)
+      })));
+    }
+    cart = []; localStorage.setItem('fd_cart', JSON.stringify(cart));
+    updateCartBadge();
+    toast('Orders placed! 🎉');
+    showPage('orders');
+  } catch(err) { toast(err.message || 'Failed to place order', 'error'); }
+}
+
+// ── RESTAURANT ORDERS ────────────────────────────────────────────────
+async function loadOrders() {
+  const { data } = await sb.from('orders').select('*, suppliers(name), order_items(*)').order('created_at', {ascending:false}).limit(30);
+  const list = document.getElementById('orders-list');
+  const SC = {pending:'bg-amber-100 text-amber-700', confirmed:'bg-blue-100 text-blue-700', preparing:'bg-blue-100 text-blue-700', in_transit:'bg-purple-100 text-purple-700', delivered:'bg-green-100 text-green-700', cancelled:'bg-gray-100 text-gray-500'};
+  if (!data?.length) { list.innerHTML = '<div class="text-center py-12 text-gray-400">No orders yet.</div>'; return; }
+  list.innerHTML = data.map(o => `
+    <div class="bg-white border border-gray-100 rounded-xl p-3 flex items-center gap-3">
+      <div class="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center text-xs font-semibold text-green-700 shrink-0">${(o.suppliers?.name||'?').slice(0,2).toUpperCase()}</div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2"><p class="text-sm font-medium">${o.suppliers?.name||'Farm'}</p>${o.is_urgent?'<span class="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-medium">Urgent</span>':''}</div>
+        <p class="text-xs text-gray-500">${o.order_number} · ${new Date(o.created_at).toLocaleDateString('en-AE',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</p>
+      </div>
+      <div class="text-right">
+        <p class="text-sm font-semibold">AED ${Number(o.total).toFixed(0)}</p>
+        <span class="text-xs px-2 py-0.5 rounded-full font-medium ${SC[o.status]||'bg-gray-100 text-gray-500'} capitalize">${o.status.replace('_',' ')}</span>
+      </div>
+    </div>`).join('');
+}
+
+// ── FRESHNESS ────────────────────────────────────────────────────────
+async function loadFreshness() {
+  const content = document.getElementById('freshness-content');
+  content.innerHTML = '<div class="text-center py-12 text-gray-400">No inventory data yet. Freshness tracking activates after your first order is delivered.</div>';
+}
+
+// ── SAVINGS ──────────────────────────────────────────────────────────
+async function loadSavings() {
+  const { data } = await sb.from('orders').select('subtotal, platform_fee, supplier_id, suppliers(name)').eq('status','delivered');
+  const content = document.getElementById('savings-content');
+  if (!data?.length) { content.innerHTML = '<div class="text-center py-12 text-gray-400">No delivered orders yet.</div>'; return; }
+  const totalSpend = data.reduce((s,o) => s + Number(o.subtotal), 0);
+  const totalFees  = data.reduce((s,o) => s + Number(o.platform_fee), 0);
+  const netSavings = totalSpend * 0.20 - totalFees;
+  const byS = {};
+  data.forEach(o => { const k=o.supplier_id; if(!byS[k]) byS[k]={name:o.suppliers?.name||'Farm',orders:0,spend:0}; byS[k].orders++; byS[k].spend+=Number(o.subtotal); });
+  content.innerHTML = `
+    <div class="grid grid-cols-3 gap-3 mb-6">
+      <div class="bg-green-50 border border-green-100 rounded-xl p-4"><p class="text-xs text-green-600 mb-1">Total saved</p><p class="text-2xl font-semibold text-green-800">AED ${netSavings.toFixed(0)}</p><p class="text-xs text-green-500 mt-1">vs middleman prices</p></div>
+      <div class="bg-gray-50 border rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Total orders</p><p class="text-2xl font-semibold">${data.length}</p></div>
+      <div class="bg-gray-50 border rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Avg markup avoided</p><p class="text-2xl font-semibold">~19%</p></div>
+    </div>
+    <p class="text-sm font-semibold mb-3">By farm</p>
+    <div class="space-y-2">${Object.values(byS).map(s=>`
+      <div class="border border-gray-100 rounded-xl p-3 flex items-center gap-3 bg-white">
+        <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center text-sm font-semibold text-green-700">${s.name.slice(0,2).toUpperCase()}</div>
+        <div class="flex-1"><p class="text-sm font-medium">${s.name}</p><p class="text-xs text-gray-400">${s.orders} orders · AED ${s.spend.toFixed(0)} spent</p></div>
+        <p class="text-sm font-semibold text-green-700">AED ${(s.spend*0.15).toFixed(0)} saved</p>
+      </div>`).join('')}</div>`;
+}
+
+// ── FARM DASHBOARD ───────────────────────────────────────────────────
+async function loadFarmDashboard() {
+  if (!currentFarm) return;
+  const { data: orders } = await sb.from('orders').select('*, restaurants(name), order_items(*)').eq('supplier_id', currentFarm.id).order('created_at',{ascending:false}).limit(10);
+  const pending = (orders||[]).filter(o => o.status==='pending');
+  const todayRev = (orders||[]).filter(o => o.status!=='cancelled' && new Date(o.created_at).toDateString()===new Date().toDateString()).reduce((s,o)=>s+Number(o.subtotal),0);
+  const SC = {pending:'bg-amber-100 text-amber-700', confirmed:'bg-blue-100 text-blue-700', preparing:'bg-blue-100 text-blue-700', in_transit:'bg-purple-100 text-purple-700', delivered:'bg-green-100 text-green-700', cancelled:'bg-gray-100 text-gray-500'};
+  const NS = {pending:'confirmed', confirmed:'preparing', preparing:'in_transit', in_transit:'delivered'};
+  const AL = {pending:'Accept order', confirmed:'Start preparing', preparing:'Mark in transit', in_transit:'Mark delivered'};
+
+  document.getElementById('farm-dashboard-content').innerHTML = `
+    <div class="flex items-start justify-between mb-5">
+      <div></div>
+      <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border ${currentFarm.is_verified?'bg-green-50 text-green-700 border-green-200':'bg-amber-50 text-amber-700 border-amber-200'}">
+        🛡️ ${currentFarm.is_verified?'Verified farm':'Pending verification'}
+      </div>
+    </div>
+    <div class="grid grid-cols-4 gap-3 mb-6">
+      <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Pending</p><p class="text-2xl font-semibold">${pending.length}</p></div>
+      <div class="bg-green-50 border border-green-100 rounded-xl p-4"><p class="text-xs text-green-600 mb-1">Today revenue</p><p class="text-2xl font-semibold text-green-800">AED ${todayRev.toFixed(0)}</p></div>
+      <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Rating</p><p class="text-2xl font-semibold">${currentFarm.rating||'—'}</p></div>
+      <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Total orders</p><p class="text-2xl font-semibold">${currentFarm.total_orders||0}</p></div>
+    </div>
+    ${pending.length?'<p class="text-sm font-semibold text-red-700 mb-2">⚡ Needs action</p>':''}
+    <div class="space-y-3">
+      ${(orders||[]).slice(0,5).map(o=>`
+        <div class="border ${o.status==='pending'?'border-amber-200 bg-amber-50':'border-gray-100 bg-white'} rounded-xl p-3">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-1">
+                <p class="text-sm font-semibold">${o.restaurants?.name||'Restaurant'}</p>
+                ${o.is_urgent?'<span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">⚡ Urgent</span>':''}
+                <span class="text-xs px-2 py-0.5 rounded-full font-medium capitalize ${SC[o.status]}">${o.status.replace('_',' ')}</span>
+              </div>
+              <p class="text-xs text-gray-400">${o.order_number}</p>
+              <div class="bg-white rounded-lg border border-gray-100 p-2 mt-2">
+                ${(o.order_items||[]).map(i=>`<div class="flex justify-between text-xs py-0.5"><span>${i.product_name}</span><span class="text-gray-500">${i.quantity}${i.unit} · AED ${Number(i.line_total).toFixed(0)}</span></div>`).join('')}
+              </div>
+            </div>
+            <div class="text-right shrink-0">
+              <p class="text-base font-semibold">AED ${Number(o.subtotal).toFixed(0)}</p>
+              ${NS[o.status]?`<button onclick="advanceFarmOrder('${o.id}','${NS[o.status]}')" class="mt-2 px-3 py-1.5 bg-green-700 text-white rounded-lg text-xs font-medium hover:bg-green-800">${AL[o.status]}</button>`:''}
+            </div>
+          </div>
+        </div>`).join('')}
+      ${!orders?.length?'<p class="text-sm text-gray-400 text-center py-8">No orders yet.</p>':''}
+    </div>`;
+}
+
+async function advanceFarmOrder(id, status) {
+  const updates = {status};
+  if (status==='confirmed') updates.confirmed_at = new Date().toISOString();
+  if (status==='delivered') updates.delivered_at = new Date().toISOString();
+  const { error } = await sb.from('orders').update(updates).eq('id', id);
+  if (error) return toast(error.message, 'error');
+  toast(`Order → ${status.replace('_',' ')} ✅`);
+  loadFarmDashboard();
+}
+
+// ── FARM ORDERS ──────────────────────────────────────────────────────
+async function loadFarmOrders() {
+  if (!currentFarm) return;
+  const { data } = await sb.from('orders').select('*, restaurants(name), order_items(*)').eq('supplier_id', currentFarm.id).order('created_at',{ascending:false});
+  const list = document.getElementById('farm-orders-list');
+  const SC = {pending:'bg-amber-100 text-amber-700', confirmed:'bg-blue-100 text-blue-700', preparing:'bg-blue-100 text-blue-700', in_transit:'bg-purple-100 text-purple-700', delivered:'bg-green-100 text-green-700', cancelled:'bg-gray-100 text-gray-500'};
+  const NS = {pending:'confirmed', confirmed:'preparing', preparing:'in_transit', in_transit:'delivered'};
+  const AL = {pending:'Accept', confirmed:'Start preparing', preparing:'Mark in transit', in_transit:'Mark delivered'};
+  if (!data?.length) { list.innerHTML = '<div class="text-center py-12 text-gray-400">No orders yet.</div>'; return; }
+  list.innerHTML = data.map(o=>`
+    <div class="border ${o.status==='pending'?'border-amber-200 bg-amber-50':'border-gray-100 bg-white'} rounded-xl p-4">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-1">
+            <p class="text-sm font-semibold">${o.restaurants?.name||'Restaurant'}</p>
+            ${o.is_urgent?'<span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">⚡ Urgent</span>':''}
+            <span class="text-xs px-2 py-0.5 rounded-full font-medium capitalize ${SC[o.status]}">${o.status.replace('_',' ')}</span>
+          </div>
+          <p class="text-xs text-gray-400 mb-2">${o.order_number} · ${new Date(o.created_at).toLocaleDateString('en-AE',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</p>
+          <div class="bg-white rounded-lg border border-gray-100 p-2">
+            ${(o.order_items||[]).map(i=>`<div class="flex justify-between text-xs py-0.5"><span>${i.product_name}</span><span class="text-gray-500">${i.quantity}${i.unit} · AED ${Number(i.line_total).toFixed(0)}</span></div>`).join('')}
+          </div>
+        </div>
+        <div class="text-right shrink-0">
+          <p class="text-base font-semibold">AED ${Number(o.subtotal).toFixed(0)}</p>
+          ${NS[o.status]?`<button onclick="advanceFarmOrderList('${o.id}','${NS[o.status]}')" class="mt-2 px-3 py-1.5 bg-green-700 text-white rounded-lg text-xs font-medium hover:bg-green-800">${AL[o.status]}</button>`:''}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+async function advanceFarmOrderList(id, status) {
+  const updates = {status};
+  if (status==='confirmed') updates.confirmed_at = new Date().toISOString();
+  if (status==='delivered') updates.delivered_at = new Date().toISOString();
+  await sb.from('orders').update(updates).eq('id', id);
+  toast(`Order → ${status.replace('_',' ')} ✅`);
+  loadFarmOrders();
+}
+
+// ── FARM PRODUCTS ────────────────────────────────────────────────────
+async function loadMyProducts() {
+  if (!currentFarm) return;
+  const { data } = await sb.from('products').select('*').eq('supplier_id', currentFarm.id).eq('active',true).order('name');
+  const list = document.getElementById('my-products-list');
+  if (!data?.length) { list.innerHTML = '<div class="text-center py-12 text-gray-400">No products yet.</div>'; return; }
+  list.innerHTML = data.map(p=>`
+    <div class="border border-gray-100 rounded-xl p-3 flex items-center gap-3 bg-white">
+      <span class="text-2xl">${p.emoji||'🌿'}</span>
+      <div class="flex-1"><p class="text-sm font-medium">${p.name}</p><p class="text-xs text-gray-400 capitalize">${p.category} · AED ${Number(p.price_per_unit).toFixed(2)}/${p.unit} · ${p.freshness_days}d shelf life</p></div>
+      <button onclick="deleteProduct('${p.id}')" class="text-gray-300 hover:text-red-500 text-lg">×</button>
+    </div>`).join('');
+}
+
+function toggleProductForm() { document.getElementById('product-form').classList.toggle('hide'); }
+
+async function saveProduct() {
+  if (!currentFarm) return;
+  const name = document.getElementById('p-name').value;
+  const price = document.getElementById('p-price').value;
+  if (!name || !price) return toast('Please fill in name and price', 'error');
+  const { error } = await sb.from('products').insert({
+    supplier_id: currentFarm.id,
+    name, emoji: document.getElementById('p-emoji').value||'🌿',
+    category: document.getElementById('p-category').value,
+    price_per_unit: parseFloat(price),
+    unit: document.getElementById('p-unit').value,
+    min_quantity: parseFloat(document.getElementById('p-min-qty').value)||1,
+    freshness_days: parseInt(document.getElementById('p-freshness').value)||3,
+    active: true, in_stock: true,
+  });
+  if (error) return toast(error.message, 'error');
+  toast('Product added! ✅');
+  toggleProductForm();
+  loadMyProducts();
+}
+
+async function deleteProduct(id) {
+  if (!confirm('Remove this product?')) return;
+  await sb.from('products').update({active:false}).eq('id', id);
+  toast('Removed'); loadMyProducts();
+}
+
+// ── FARM PROFILE ─────────────────────────────────────────────────────
+function loadFarmProfile() {
+  if (!currentFarm) return;
+  document.getElementById('sp-name').value = currentFarm.name||'';
+  document.getElementById('sp-category').value = currentFarm.category||'greens';
+  document.getElementById('sp-phone').value = currentFarm.phone||'';
+  document.getElementById('sp-city').value = currentFarm.city||'';
+  document.getElementById('sp-description').value = currentFarm.description||'';
+  document.getElementById('sp-lead').value = currentFarm.lead_time_hours||24;
+  document.getElementById('sp-min-order').value = currentFarm.min_order_value||0;
+  document.getElementById('sp-urgent').checked = currentFarm.accepts_urgent||false;
+  if (currentFarm.is_verified) {
+    document.getElementById('verification-status').innerHTML = '<p class="text-sm font-medium text-green-800">🛡️ Your farm is verified ✓</p>';
+    document.getElementById('verification-status').className = 'rounded-xl p-4 mb-5 bg-green-50 border border-green-200';
+  }
+}
+
+async function saveFarmProfile() {
+  if (!currentFarm) return;
+  const updates = {
+    name: document.getElementById('sp-name').value,
+    category: document.getElementById('sp-category').value,
+    phone: document.getElementById('sp-phone').value,
+    city: document.getElementById('sp-city').value,
+    description: document.getElementById('sp-description').value,
+    lead_time_hours: parseInt(document.getElementById('sp-lead').value),
+    min_order_value: parseFloat(document.getElementById('sp-min-order').value),
+    accepts_urgent: document.getElementById('sp-urgent').checked,
+    onboarded: true,
+  };
+  const { error } = await sb.from('suppliers').update(updates).eq('id', currentFarm.id);
+  if (error) return toast(error.message, 'error');
+  currentFarm = {...currentFarm, ...updates};
+  document.getElementById('sidebar-name').textContent = currentFarm.name;
+  toast('Profile saved! ✅');
+}
+
+// ── MANAGER DASHBOARD ────────────────────────────────────────────────
+async function loadManagerDashboard() {
+  const [ordersRes, suppliersRes, restaurantsRes] = await Promise.all([
+    sb.from('orders').select('id, subtotal, platform_fee, status, created_at'),
+    sb.from('suppliers').select('id, is_verified, active'),
+    sb.from('restaurants').select('id'),
+  ]);
+  const orders = ordersRes.data||[];
+  const suppliers = suppliersRes.data||[];
+  const restaurants = restaurantsRes.data||[];
+  const totalGMV = orders.filter(o=>o.status==='delivered').reduce((s,o)=>s+Number(o.subtotal),0);
+  const totalRev  = orders.filter(o=>o.status==='delivered').reduce((s,o)=>s+Number(o.platform_fee),0);
+  const verifiedFarms = suppliers.filter(s=>s.is_verified).length;
+  const pendingFarms  = suppliers.filter(s=>!s.is_verified&&s.active).length;
+
+  document.getElementById('mgr-stats').innerHTML = `
+    <div class="bg-green-50 border border-green-100 rounded-xl p-4"><p class="text-xs text-green-600 mb-1">Your revenue (5% fees)</p><p class="text-2xl font-bold text-green-800">AED ${totalRev.toFixed(0)}</p><p class="text-xs text-green-500 mt-1">from delivered orders</p></div>
+    <div class="bg-white border border-gray-100 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Total GMV</p><p class="text-2xl font-bold">AED ${totalGMV.toFixed(0)}</p><p class="text-xs text-gray-400 mt-1">all farm sales</p></div>
+    <div class="bg-white border border-gray-100 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Total orders</p><p class="text-2xl font-bold">${orders.length}</p><p class="text-xs text-orange-500 mt-1">${orders.filter(o=>o.status==='pending').length} pending</p></div>
+    <div class="bg-white border border-gray-100 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Platform</p><p class="text-2xl font-bold">${restaurants.length} 🍽️</p><p class="text-xs text-gray-400 mt-1">${verifiedFarms} verified · ${pendingFarms} pending farms</p></div>`;
+
+  document.getElementById('mgr-revenue').innerHTML = `
+    <div class="flex justify-between py-2 border-b border-gray-100"><span class="text-sm text-gray-600">Total GMV</span><span class="font-semibold">AED ${totalGMV.toFixed(0)}</span></div>
+    <div class="flex justify-between py-2 border-b border-gray-100"><span class="text-sm text-gray-600">Platform fees (5%)</span><span class="font-semibold text-green-700">AED ${totalRev.toFixed(0)}</span></div>
+    <div class="flex justify-between py-2 border-b border-gray-100"><span class="text-sm text-gray-600">Delivered orders</span><span class="font-semibold">${orders.filter(o=>o.status==='delivered').length}</span></div>
+    <div class="flex justify-between py-2"><span class="text-sm text-gray-600">Avg order value</span><span class="font-semibold">AED ${orders.length?(totalGMV/orders.length).toFixed(0):0}</span></div>`;
+
+  const { data: pendingFarmsData } = await sb.from('suppliers').select('*').eq('is_verified',false).eq('active',true);
+  document.getElementById('mgr-farm-queue').innerHTML = !pendingFarmsData?.length
+    ? '<div class="bg-green-50 border border-green-100 rounded-xl p-4 text-sm text-green-700 text-center">✅ No farms pending verification</div>'
+    : pendingFarmsData.map(f=>`
+      <div class="bg-white border border-amber-200 rounded-xl p-3">
+        <div class="flex items-start justify-between gap-2">
+          <div><p class="text-sm font-medium">${f.emoji||'🌿'} ${f.name}</p><p class="text-xs text-gray-400">📍 ${f.city||'UAE'} · ${f.category||'—'}</p></div>
+          <div class="flex flex-col gap-1.5 shrink-0">
+            <button onclick="verifyFarm('${f.id}',true)" class="px-2 py-1 bg-green-700 text-white rounded text-xs font-medium">✓ Verify</button>
+            <button onclick="verifyFarm('${f.id}',false)" class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">✗ Reject</button>
+          </div>
+        </div>
+      </div>`).join('');
+
+  const { data: recentOrders } = await sb.from('orders').select('*, suppliers(name), restaurants(name)').order('created_at',{ascending:false}).limit(5);
+  const SC2 = {pending:'bg-amber-100 text-amber-700', confirmed:'bg-blue-100 text-blue-700', in_transit:'bg-purple-100 text-purple-700', delivered:'bg-green-100 text-green-700', cancelled:'bg-gray-100 text-gray-500'};
+  document.getElementById('mgr-orders').innerHTML = (recentOrders||[]).map(o=>`
+    <div class="bg-white border border-gray-100 rounded-xl p-3 flex items-center gap-3">
+      <div class="flex-1 min-w-0"><p class="text-xs font-medium truncate">${o.restaurants?.name||'Restaurant'} → ${o.suppliers?.name||'Farm'}</p><p class="text-xs text-gray-400">${o.order_number}</p></div>
+      <div class="text-right shrink-0"><p class="text-sm font-semibold">AED ${Number(o.subtotal).toFixed(0)}</p><span class="text-xs px-1.5 py-0.5 rounded-full font-medium capitalize ${SC2[o.status]||'bg-gray-100 text-gray-500'}">${o.status.replace('_',' ')}</span></div>
+    </div>`).join('') || '<p class="text-sm text-gray-400 text-center py-4">No orders yet</p>';
+
+  // Restaurants
+  const { data: restData } = await sb.from('restaurants').select('*').order('created_at',{ascending:false}).limit(10);
+  document.getElementById('mgr-restaurants').innerHTML = (restData||[]).map(r=>`
+    <div class="bg-white border border-gray-100 rounded-xl p-3 flex items-center gap-3">
+      <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center text-sm font-semibold text-green-700 shrink-0">${(r.name||'?').slice(0,2).toUpperCase()}</div>
+      <div class="flex-1"><p class="text-sm font-medium">${r.name}</p><p class="text-xs text-gray-400">📍 ${r.city||'UAE'}</p></div>
+    </div>`).join('') || '<p class="text-sm text-gray-400 text-center py-4">No restaurants yet</p>';
+}
+
+async function loadMgrFarms() {
+  const { data } = await sb.from('suppliers').select('*').order('created_at',{ascending:false});
+  document.getElementById('mgr-all-farms').innerHTML = (data||[]).map(f=>`
+    <div class="bg-white border ${f.is_verified?'border-green-200':'border-amber-200'} rounded-xl p-3">
+      <div class="flex items-start justify-between gap-2">
+        <div><p class="text-sm font-medium">${f.emoji||'🌿'} ${f.name} ${f.is_verified?'<span class="text-green-600 text-xs">✓ Verified</span>':'<span class="text-amber-600 text-xs">⏳ Pending</span>'}</p><p class="text-xs text-gray-400">📍 ${f.city||'UAE'} · ${f.category||'—'}</p></div>
+        <div class="flex gap-1 shrink-0">
+          ${!f.is_verified?`<button onclick="verifyFarm('${f.id}',true)" class="px-2 py-1 bg-green-700 text-white rounded text-xs font-medium">✓ Verify</button>`:''}
+          <button onclick="verifyFarm('${f.id}',false)" class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">Remove</button>
+        </div>
+      </div>
+    </div>`).join('') || '<p class="text-sm text-gray-400 text-center py-8">No farms yet</p>';
+}
+
+async function loadMgrOrders() {
+  const { data } = await sb.from('orders').select('*, suppliers(name), restaurants(name)').order('created_at',{ascending:false}).limit(50);
+  const SC = {pending:'bg-amber-100 text-amber-700', confirmed:'bg-blue-100 text-blue-700', in_transit:'bg-purple-100 text-purple-700', delivered:'bg-green-100 text-green-700', cancelled:'bg-gray-100 text-gray-500'};
+  document.getElementById('mgr-all-orders').innerHTML = (data||[]).map(o=>`
+    <div class="bg-white border border-gray-100 rounded-xl p-3 flex items-center gap-3">
+      <div class="flex-1 min-w-0"><p class="text-sm font-medium truncate">${o.restaurants?.name||'?'} → ${o.suppliers?.name||'?'}</p><p class="text-xs text-gray-400">${o.order_number} · ${new Date(o.created_at).toLocaleDateString()}</p></div>
+      <div class="text-right shrink-0"><p class="text-sm font-semibold">AED ${Number(o.subtotal).toFixed(0)}</p><p class="text-xs text-green-600">fee: AED ${Number(o.platform_fee).toFixed(0)}</p><span class="text-xs px-1.5 py-0.5 rounded-full font-medium capitalize ${SC[o.status]||'bg-gray-100 text-gray-500'}">${o.status.replace('_',' ')}</span></div>
+    </div>`).join('') || '<p class="text-sm text-gray-400 text-center py-8">No orders yet</p>';
+}
+
+async function loadMgrRestaurants() {
+  const { data } = await sb.from('restaurants').select('*').order('created_at',{ascending:false});
+  document.getElementById('mgr-all-restaurants').innerHTML = (data||[]).map(r=>`
+    <div class="bg-white border border-gray-100 rounded-xl p-3 flex items-center gap-3">
+      <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center text-sm font-semibold text-green-700 shrink-0">${(r.name||'?').slice(0,2).toUpperCase()}</div>
+      <div class="flex-1"><p class="text-sm font-medium">${r.name}</p><p class="text-xs text-gray-400">📍 ${r.city||'UAE'} ${r.phone?'· 📞 '+r.phone:''}</p></div>
+      <p class="text-xs text-gray-400">${new Date(r.created_at).toLocaleDateString()}</p>
+    </div>`).join('') || '<p class="text-sm text-gray-400 text-center py-8">No restaurants yet</p>';
+}
+
+async function verifyFarm(id, approve) {
+  if (approve) {
+    await sb.from('suppliers').update({is_verified:true, gov_licensed:true, team_reviewed:true}).eq('id', id);
+    toast('Farm verified ✅');
+  } else {
+    if (!confirm('Remove this farm from the platform?')) return;
+    await sb.from('suppliers').update({active:false}).eq('id', id);
+    toast('Farm removed');
+  }
+  loadManagerDashboard();
+}
+</script>
+</body>
+</html>
