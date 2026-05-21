@@ -1,0 +1,1801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Fresh Supply UAE</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  .hide { display: none; }
+  .toast { position:fixed; top:16px; right:16px; z-index:9999; padding:10px 16px; border-radius:8px; font-size:14px; font-weight:500; opacity:0; transition:opacity .3s; pointer-events:none; }
+  .toast.show { opacity:1; }
+  .fresh-bar { height:6px; border-radius:999px; transition:width .6s; }
+  ::-webkit-scrollbar { width:4px; height:4px; }
+  ::-webkit-scrollbar-thumb { background:#d1d5db; border-radius:999px; }
+  .logo-text { background: linear-gradient(135deg, #16a34a, #15803d); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; letter-spacing: -1px; }
+  .logo-leaf { display:inline-block; margin-right:2px; }
+  .chat-bubble-in  { background:#f0fdf4; border:1px solid #bbf7d0; border-radius:0 12px 12px 12px; }
+  .chat-bubble-out { background:#15803d; color:white; border-radius:12px 0 12px 12px; }
+  .price-card { transition: all .2s; }
+  .price-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+</style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+
+<div id="toast" class="toast bg-green-700 text-white"></div>
+
+<div id="app">
+
+  <!-- ═══ LOGIN SCREEN ═══ -->
+  <div id="login-screen" class="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 flex flex-col items-center justify-center p-6">
+
+    <!-- LOGO -->
+    <div class="flex flex-col items-center mb-10">
+      <div class="w-20 h-20 mb-4 relative">
+        <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="80" height="80" rx="20" fill="#15803d"/>
+          <path d="M40 16 C40 16 22 28 22 44 C22 53.9 30.1 62 40 62 C49.9 62 58 53.9 58 44 C58 28 40 16 40 16Z" fill="#bbf7d0"/>
+          <path d="M40 24 C40 24 28 33 28 44 C28 50.6 33.4 56 40 56 C46.6 56 52 50.6 52 44 C52 33 40 24 40 24Z" fill="#16a34a"/>
+          <path d="M40 32 C40 32 34 38 34 44 C34 47.3 36.7 50 40 50 C43.3 50 46 47.3 46 44 C46 38 40 32 40 32Z" fill="#dcfce7"/>
+          <line x1="40" y1="16" x2="40" y2="62" stroke="#15803d" stroke-width="1.5" stroke-dasharray="2,2"/>
+        </svg>
+      </div>
+      <h1 class="text-4xl logo-text">Fresh Supply</h1>
+      <p class="text-gray-400 text-sm mt-1">UAE Farm to Restaurant Marketplace</p>
+    </div>
+
+    <p class="text-gray-500 mb-6 text-sm font-medium">Who are you signing in as?</p>
+
+    <div class="grid grid-cols-3 gap-4 w-full max-w-xl mb-8">
+      <div onclick="selectRole('restaurant')" id="tile-restaurant"
+        class="role-tile bg-white border-2 border-gray-200 rounded-2xl p-6 flex flex-col items-center gap-3 hover:border-green-400 hover:shadow-md transition-all cursor-pointer">
+        <span class="text-4xl">🍽️</span>
+        <span class="font-semibold text-gray-800">Restaurant</span>
+        <span class="text-xs text-gray-400 text-center">Order fresh produce</span>
+      </div>
+      <div onclick="selectRole('farm')" id="tile-farm"
+        class="role-tile bg-white border-2 border-gray-200 rounded-2xl p-6 flex flex-col items-center gap-3 hover:border-green-400 hover:shadow-md transition-all cursor-pointer">
+        <span class="text-4xl">🌿</span>
+        <span class="font-semibold text-gray-800">Farm</span>
+        <span class="text-xs text-gray-400 text-center">Manage your orders</span>
+      </div>
+      <div onclick="selectRole('manager')" id="tile-manager"
+        class="role-tile bg-white border-2 border-gray-200 rounded-2xl p-6 flex flex-col items-center gap-3 hover:border-amber-400 hover:shadow-md transition-all cursor-pointer">
+        <span class="text-4xl">👑</span>
+        <span class="font-semibold text-gray-800">Manager</span>
+        <span class="text-xs text-gray-400 text-center">Platform overview</span>
+      </div>
+    </div>
+
+    <div id="password-box" style="display:none" class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 w-full max-w-sm">
+      <p id="password-label" class="text-sm font-medium text-gray-700 mb-3 text-center"></p>
+      <div id="farm-select-wrap" style="display:none" class="mb-3">
+        <label class="text-xs text-gray-500 mb-1 block">Select your farm</label>
+        <select id="farm-select" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white outline-none focus:border-green-500">
+          <option value="">-- Choose farm --</option>
+        </select>
+      </div>
+      <input id="password-input" type="password" placeholder="Enter password"
+        class="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500 mb-3"
+        onkeydown="if(event.key==='Enter') checkPassword()" />
+      <button onclick="checkPassword()" class="w-full py-2.5 bg-green-700 text-white rounded-lg text-sm font-medium hover:bg-green-800 transition-colors">Sign in</button>
+      <p id="pw-error" style="display:none" class="text-xs text-red-500 text-center mt-2">Wrong password, try again</p>
+    </div>
+  </div>
+
+  <!-- ═══ MAIN APP ═══ -->
+  <div id="main-app" style="display:none" class="flex h-screen">
+
+    <!-- SIDEBAR -->
+    <aside class="w-56 bg-white border-r border-gray-100 flex flex-col shrink-0">
+      <div class="px-4 py-4 border-b border-gray-100">
+        <div class="flex items-center gap-2">
+          <svg viewBox="0 0 32 32" class="w-8 h-8 shrink-0" fill="none">
+            <rect width="32" height="32" rx="8" fill="#15803d"/>
+            <path d="M16 5C16 5 8 11 8 18C8 22.4 11.6 26 16 26C20.4 26 24 22.4 24 18C24 11 16 5 16 5Z" fill="#bbf7d0"/>
+            <path d="M16 9C16 9 10 14 10 18C10 21 12.7 23.5 16 23.5C19.3 23.5 22 21 22 18C22 14 16 9 16 9Z" fill="#16a34a"/>
+            <path d="M16 13C16 13 13 16 13 18C13 19.7 14.3 21 16 21C17.7 21 19 19.7 19 18C19 16 16 13 16 13Z" fill="#dcfce7"/>
+          </svg>
+          <div>
+            <p class="font-bold text-sm leading-tight text-green-800">Fresh Supply</p>
+            <p id="sidebar-role" class="text-xs text-gray-400 leading-tight"></p>
+          </div>
+        </div>
+        <p id="sidebar-name" class="text-xs text-gray-500 mt-2 truncate font-medium"></p>
+      </div>
+      <nav id="sidebar-nav" class="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto"></nav>
+      <div class="px-2 py-3 border-t border-gray-100">
+        <button onclick="signOut()" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors">← Sign out</button>
+      </div>
+    </aside>
+
+    <!-- PAGES -->
+    <main class="flex-1 overflow-y-auto relative">
+
+      <!-- MARKETPLACE -->
+      <div id="page-marketplace" style="display:none" class="page flex flex-col" style="min-height:100%">
+        <div class="px-5 py-3 border-b border-gray-100 flex items-center gap-3 bg-white sticky top-0 z-10">
+          <div class="relative flex-1">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+            <input id="market-search" oninput="loadProducts()" type="text" placeholder="Search UAE produce..."
+              class="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg outline-none focus:border-green-500 bg-gray-50" />
+          </div>
+          <button onclick="showPage('cart')" class="relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm border border-gray-200 hover:bg-gray-50">
+            🛒 Cart
+            <span id="cart-badge" class="hide absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">0</span>
+          </button>
+        </div>
+        <div class="px-5 py-2.5 border-b border-gray-100 bg-white flex gap-2 overflow-x-auto" style="scrollbar-width:none">
+          <button onclick="filterCat('all')" id="cat-all" class="cat-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border bg-green-700 text-white border-green-700">🛒 All</button>
+          <button onclick="filterCat('greens')" id="cat-greens" class="cat-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border border-gray-200 text-gray-600">🥬 Greens</button>
+          <button onclick="filterCat('vegetables')" id="cat-vegetables" class="cat-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border border-gray-200 text-gray-600">🍅 Vegetables</button>
+          <button onclick="filterCat('dairy')" id="cat-dairy" class="cat-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border border-gray-200 text-gray-600">🥛 Dairy</button>
+          <button onclick="filterCat('herbs')" id="cat-herbs" class="cat-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border border-gray-200 text-gray-600">🌿 Herbs</button>
+          <button onclick="filterCat('seafood')" id="cat-seafood" class="cat-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border border-gray-200 text-gray-600">🐟 Seafood</button>
+          <button onclick="filterCat('eggs')" id="cat-eggs" class="cat-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border border-gray-200 text-gray-600">🥚 Eggs</button>
+          <button onclick="filterCat('meat')" id="cat-meat" class="cat-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border border-gray-200 text-gray-600">🥩 Meat</button>
+        </div>
+        <div class="flex-1 overflow-y-auto">
+          <div class="mx-5 mt-4 mb-3 bg-green-50 border border-green-200 rounded-xl p-4 flex items-center justify-between">
+            <div><p class="text-sm font-medium text-green-800">Shop directly from UAE farms</p><p class="text-xs text-green-600 mt-0.5">No middlemen · Harvest-fresh · Verified</p></div>
+            <div class="flex items-center gap-1 bg-white border border-green-200 rounded-full px-3 py-1.5 text-xs font-medium text-green-700">⚡ 2–4h delivery</div>
+          </div>
+          <div class="px-5 pb-1 flex items-center justify-between">
+            <p class="text-sm font-semibold text-gray-800">All UAE produce</p>
+            <p id="product-count" class="text-xs text-gray-400"></p>
+          </div>
+          <div id="product-grid" class="px-5 pb-6 grid grid-cols-3 gap-3 mt-2"></div>
+        </div>
+      </div>
+
+      <!-- PRICE COMPARISON -->
+      <div id="page-compare" style="display:none" class="page p-5 max-w-4xl">
+        <h1 class="text-xl font-semibold mb-1">📊 Price comparison</h1>
+        <p class="text-sm text-gray-500 mb-4">Compare prices for the same product across UAE farms</p>
+        <div class="relative mb-4">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+          <input id="compare-search" oninput="loadComparison()" type="text" placeholder="Search a product e.g. spinach, tomatoes..."
+            class="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-lg outline-none focus:border-green-500 bg-gray-50" />
+        </div>
+        <div id="compare-results"></div>
+      </div>
+
+      <!-- FARMS BROWSE -->
+      <div id="page-farms" style="display:none" class="page p-5">
+        <h1 class="text-xl font-semibold mb-1">UAE Farms</h1>
+        <p class="text-sm text-gray-500 mb-4">Verified local farms directory</p>
+        <div class="flex gap-2 mb-4 overflow-x-auto pb-1" style="scrollbar-width:none">
+          <button onclick="filterEmirate('all')" class="emirate-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border bg-green-700 text-white border-green-700">All UAE</button>
+          <button onclick="filterEmirate('Dubai')" class="emirate-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border border-gray-200 text-gray-600">📍 Dubai</button>
+          <button onclick="filterEmirate('Abu Dhabi')" class="emirate-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border border-gray-200 text-gray-600">📍 Abu Dhabi</button>
+          <button onclick="filterEmirate('Al Ain')" class="emirate-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border border-gray-200 text-gray-600">📍 Al Ain</button>
+          <button onclick="filterEmirate('RAK')" class="emirate-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border border-gray-200 text-gray-600">📍 RAK</button>
+        </div>
+        <div id="farms-grid" class="grid grid-cols-2 gap-3"></div>
+      </div>
+
+      <!-- FARM DETAIL -->
+      <div id="page-farm-detail" style="display:none" class="page p-5">
+        <button onclick="showPage('farms')" class="text-sm text-gray-500 hover:text-gray-800 mb-4 flex items-center gap-1">← Back to farms</button>
+        <div id="farm-detail-content"></div>
+      </div>
+
+      <!-- CART -->
+      <div id="page-cart" style="display:none" class="page flex h-full">
+        <div class="flex-1 overflow-y-auto p-5">
+          <h1 class="text-xl font-semibold mb-4">Your cart</h1>
+          <div id="cart-items-list"></div>
+          <div class="mb-5">
+            <p class="text-sm font-semibold text-gray-800 mb-3">Delivery speed</p>
+            <div class="grid grid-cols-3 gap-3">
+              <button onclick="setDelivery('express')" id="del-express" class="delivery-opt p-3 rounded-xl border border-green-500 bg-green-50 text-center">
+                <div class="text-2xl mb-1">⚡</div><p class="text-xs font-medium">Express</p><p class="text-xs text-green-600">2–4 hours</p><p class="text-xs text-gray-400">AED 15</p>
+              </button>
+              <button onclick="setDelivery('morning')" id="del-morning" class="delivery-opt p-3 rounded-xl border border-gray-200 text-center">
+                <div class="text-2xl mb-1">🌅</div><p class="text-xs font-medium">Morning</p><p class="text-xs text-green-600">By 8AM</p><p class="text-xs text-gray-400">AED 8</p>
+              </button>
+              <button onclick="setDelivery('schedule')" id="del-schedule" class="delivery-opt p-3 rounded-xl border border-gray-200 text-center">
+                <div class="text-2xl mb-1">📅</div><p class="text-xs font-medium">Scheduled</p><p class="text-xs text-green-600">Pick time</p><p class="text-xs text-gray-400">Free</p>
+              </button>
+            </div>
+            <!-- Scheduled datetime picker — shows only when Scheduled is selected -->
+            <div id="scheduled-time-wrap" style="display:none" class="mt-3 bg-white border border-green-200 rounded-xl p-3">
+              <label class="text-xs font-medium text-gray-700 block mb-1">📅 Choose delivery date & time</label>
+              <input id="scheduled-datetime" type="datetime-local"
+                class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" />
+              <p class="text-xs text-gray-400 mt-1">Farm will receive your requested delivery window</p>
+            </div>
+          </div>
+          <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-3 mb-5">
+            <span class="text-amber-500 text-xl shrink-0">👑</span>
+            <div class="flex-1"><p class="text-sm font-medium text-amber-800">Fresh Supply Prime</p><p class="text-xs text-amber-600">Free express delivery + priority stock</p></div>
+            <button class="text-xs font-semibold text-amber-700 bg-amber-100 px-3 py-1.5 rounded-lg">Coming soon</button>
+          </div>
+          <div class="mb-4">
+            <label class="text-sm font-medium text-gray-700">Delivery notes (optional)</label>
+            <input id="delivery-notes" type="text" placeholder="e.g. call on arrival, loading bay B"
+              class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" />
+          </div>
+        </div>
+        <div class="w-64 border-l border-gray-100 bg-gray-50 p-4 flex flex-col shrink-0">
+          <p class="text-sm font-semibold text-gray-800 mb-4">Order summary</p>
+          <div id="cart-summary-items" class="space-y-2 mb-4 flex-1 overflow-y-auto"></div>
+          <div class="border-t border-gray-200 pt-3 space-y-2">
+            <div class="flex justify-between text-sm text-gray-500"><span>Subtotal</span><span id="sum-subtotal">AED 0</span></div>
+            <div class="flex justify-between text-sm text-gray-500"><span>Delivery</span><span id="sum-delivery">AED 15</span></div>
+            <div class="flex justify-between text-sm text-gray-500"><span>Platform fee (5%)</span><span id="sum-fee">AED 0</span></div>
+            <div class="flex justify-between text-base font-semibold text-gray-900 pt-2 border-t border-gray-200"><span>Total</span><span id="sum-total">AED 0</span></div>
+          </div>
+          <div id="cart-savings-msg" class="mt-3 bg-green-50 border border-green-100 rounded-lg p-2.5 text-xs text-green-700"></div>
+          <button onclick="placeOrder()" class="w-full py-2.5 bg-green-700 text-white rounded-lg text-sm font-medium hover:bg-green-800 mt-4">⚡ Place order</button>
+          <button onclick="showPage('marketplace')" class="text-xs text-green-700 hover:underline text-center mt-3">← Continue shopping</button>
+        </div>
+      </div>
+
+      <!-- MY ORDERS -->
+      <div id="page-orders" style="display:none" class="page p-5 max-w-3xl">
+        <h1 class="text-xl font-semibold mb-1">My Orders</h1>
+        <p class="text-sm text-gray-500 mb-4">All your direct-farm orders</p>
+        <div id="orders-list" class="space-y-2"></div>
+      </div>
+
+      <!-- ORDER CHAT -->
+      <div id="page-chat" style="display:none" class="page flex flex-col h-full max-w-2xl">
+        <div class="px-5 py-3 border-b border-gray-100 bg-white flex items-center gap-3">
+          <button onclick="showPage('orders')" class="text-sm text-gray-500 hover:text-gray-800">←</button>
+          <div>
+            <p id="chat-title" class="text-sm font-semibold"></p>
+            <p id="chat-subtitle" class="text-xs text-gray-400"></p>
+          </div>
+        </div>
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+        <div class="px-4 py-3 border-t border-gray-100 bg-white flex gap-2">
+          <input id="chat-input" type="text" placeholder="Type a message..."
+            class="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500"
+            onkeydown="if(event.key==='Enter') sendMessage()" />
+          <button onclick="sendMessage()" class="px-4 py-2 bg-green-700 text-white rounded-lg text-sm font-medium hover:bg-green-800">Send</button>
+        </div>
+      </div>
+
+      <!-- RECURRING ORDERS -->
+      <div id="page-recurring" style="display:none" class="page p-5 max-w-3xl">
+        <h1 class="text-xl font-semibold mb-1">🔄 Recurring Orders</h1>
+        <p class="text-sm text-gray-500 mb-4">Schedule automatic weekly or monthly orders</p>
+        <button onclick="showRecurringForm()" class="px-4 py-2 bg-green-700 text-white rounded-lg text-sm font-medium mb-4">+ Schedule new order</button>
+        <div id="recurring-form" class="hide border border-green-200 bg-green-50 rounded-xl p-4 mb-5">
+          <p class="text-sm font-semibold mb-3">New recurring order</p>
+          <!-- Step 1: Farm + schedule -->
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div><label class="text-xs font-medium text-gray-700">Farm</label>
+              <select id="rec-farm" onchange="loadRecurringProducts()" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white outline-none focus:border-green-500">
+                <option value="">-- Choose farm --</option>
+              </select>
+            </div>
+            <div><label class="text-xs font-medium text-gray-700">Frequency</label>
+              <select id="rec-freq" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white outline-none focus:border-green-500">
+                <option value="weekly">Every week</option>
+                <option value="biweekly">Every 2 weeks</option>
+                <option value="monthly">Every month</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div><label class="text-xs font-medium text-gray-700">Start date</label>
+              <input id="rec-date" type="date" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" />
+            </div>
+            <div><label class="text-xs font-medium text-gray-700">Delivery notes</label>
+              <input id="rec-notes" type="text" placeholder="Optional notes" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" />
+            </div>
+          </div>
+          <!-- Step 2: Product picker -->
+          <div id="rec-products-wrap" class="hide mb-3">
+            <label class="text-xs font-medium text-gray-700 block mb-2">Select products & quantities</label>
+            <div id="rec-products-list" class="space-y-2 max-h-48 overflow-y-auto"></div>
+          </div>
+          <div id="rec-no-farm" class="mb-3 text-xs text-gray-400 text-center py-3 bg-white rounded-lg border border-gray-200">← Select a farm to see available products</div>
+          <div class="flex gap-2">
+            <button onclick="saveRecurring()" class="px-4 py-2 bg-green-700 text-white rounded-lg text-sm font-medium">Save schedule</button>
+            <button onclick="hideRecurringForm()" class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium">Cancel</button>
+          </div>
+        </div>
+        <div id="recurring-list" class="space-y-3"></div>
+      </div>
+
+      <!-- NOTIFICATIONS -->
+      <div id="page-notifications" style="display:none" class="page p-5 max-w-2xl">
+        <div class="flex items-center justify-between mb-4">
+          <h1 class="text-xl font-semibold">🔔 Notifications</h1>
+          <button onclick="markAllNotifsRead()" class="text-xs text-green-700 hover:underline">Mark all read</button>
+        </div>
+        <div id="notif-list" class="space-y-2"></div>
+      </div>
+
+      <!-- FRESHNESS -->
+      <div id="page-freshness" style="display:none" class="page p-5 max-w-3xl">
+        <div class="flex items-center justify-between mb-5">
+          <div><h1 class="text-xl font-semibold">Freshness tracker</h1><p class="text-sm text-gray-500 mt-0.5">Live shelf-life of your inventory</p></div>
+          <button onclick="showPage('marketplace')" class="px-4 py-2 bg-green-700 text-white rounded-lg text-sm font-medium">🔄 Reorder</button>
+        </div>
+        <div id="freshness-content"></div>
+      </div>
+
+      <!-- SAVINGS -->
+      <div id="page-savings" style="display:none" class="page p-5 max-w-3xl">
+        <h1 class="text-xl font-semibold mb-1">Your savings</h1>
+        <p class="text-sm text-gray-500 mb-5">Money saved buying direct from UAE farms</p>
+        <div id="savings-content"></div>
+      </div>
+
+      <!-- FARM DASHBOARD -->
+      <div id="page-farm-dashboard" style="display:none" class="page p-5 max-w-3xl">
+        <h1 class="text-xl font-semibold mb-1">Farm dashboard</h1>
+        <div id="farm-dashboard-content"></div>
+      </div>
+
+      <!-- FARM ORDERS -->
+      <div id="page-farm-orders" style="display:none" class="page p-5 max-w-3xl">
+        <h1 class="text-xl font-semibold mb-1">Incoming orders</h1>
+        <p class="text-sm text-gray-500 mb-4">Orders from restaurants</p>
+        <div id="farm-orders-list" class="space-y-3"></div>
+      </div>
+
+      <!-- FARM PRODUCTS -->
+      <div id="page-farm-products" style="display:none" class="page p-5 max-w-3xl">
+        <div class="flex items-center justify-between mb-5">
+          <div><h1 class="text-xl font-semibold">My products</h1><p class="text-sm text-gray-500 mt-0.5">What restaurants can order</p></div>
+          <button onclick="toggleProductForm()" class="px-4 py-2 bg-green-700 text-white rounded-lg text-sm font-medium">+ Add product</button>
+        </div>
+        <div id="product-form" class="hide border border-green-200 bg-green-50 rounded-xl p-4 mb-5">
+          <p class="text-sm font-semibold mb-3">New product</p>
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div><label class="text-xs font-medium text-gray-700">Name</label><input id="p-name" type="text" placeholder="e.g. Mixed salad greens" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" /></div>
+            <div><label class="text-xs font-medium text-gray-700">Emoji</label><input id="p-emoji" type="text" value="🌿" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" /></div>
+          </div>
+          <div class="grid grid-cols-3 gap-3 mb-3">
+            <div><label class="text-xs font-medium text-gray-700">Category</label>
+              <select id="p-category" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white outline-none focus:border-green-500">
+                <option value="greens">Greens</option><option value="vegetables">Vegetables</option><option value="dairy">Dairy</option><option value="herbs">Herbs</option><option value="seafood">Seafood</option><option value="eggs">Eggs</option><option value="meat">Meat</option>
+              </select></div>
+            <div><label class="text-xs font-medium text-gray-700">Price (AED)</label><input id="p-price" type="number" step="0.01" placeholder="0.00" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" /></div>
+            <div><label class="text-xs font-medium text-gray-700">Unit</label>
+              <select id="p-unit" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white outline-none focus:border-green-500">
+                <option>kg</option><option>g</option><option>litre</option><option>dozen</option><option>bunch</option><option>unit</option><option>head</option><option>box</option>
+              </select></div>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div><label class="text-xs font-medium text-gray-700">Min order qty</label><input id="p-min-qty" type="number" value="1" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" /></div>
+            <div><label class="text-xs font-medium text-gray-700">Freshness (days)</label><input id="p-freshness" type="number" value="3" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" /></div>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="saveProduct()" class="px-4 py-2 bg-green-700 text-white rounded-lg text-sm font-medium hover:bg-green-800">Save</button>
+            <button onclick="toggleProductForm()" class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50">Cancel</button>
+          </div>
+        </div>
+        <div id="my-products-list" class="space-y-2"></div>
+      </div>
+
+      <!-- FARM PROFILE -->
+      <div id="page-farm-profile" style="display:none" class="page p-5 max-w-2xl">
+        <h1 class="text-xl font-semibold mb-1">Farm profile</h1>
+        <p class="text-sm text-gray-500 mb-5">Your details shown to restaurants</p>
+        <div id="verification-status" class="rounded-xl p-4 mb-5 bg-amber-50 border border-amber-200">
+          <p class="text-sm font-medium text-amber-800">🛡️ Verification pending — Fresh Supply team will review your UAE farm license</p>
+        </div>
+        <div class="space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div><label class="text-sm font-medium text-gray-700">Farm name</label><input id="sp-name" type="text" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" /></div>
+            <div><label class="text-sm font-medium text-gray-700">Category</label>
+              <select id="sp-category" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white outline-none focus:border-green-500">
+                <option value="greens">Greens</option><option value="vegetables">Vegetables</option><option value="dairy">Dairy</option><option value="herbs">Herbs</option><option value="seafood">Seafood</option><option value="eggs">Eggs</option><option value="meat">Meat</option>
+              </select></div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div><label class="text-sm font-medium text-gray-700">Phone</label><input id="sp-phone" type="text" placeholder="+971..." class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" /></div>
+            <div><label class="text-sm font-medium text-gray-700">City / Emirate</label><input id="sp-city" type="text" placeholder="Dubai" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" /></div>
+          </div>
+          <div><label class="text-sm font-medium text-gray-700">About your farm</label>
+            <textarea id="sp-description" rows="3" placeholder="Tell restaurants about your farm..." class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500 resize-none"></textarea></div>
+          <div class="grid grid-cols-2 gap-4">
+            <div><label class="text-sm font-medium text-gray-700">Avg delivery (hours)</label><input id="sp-lead" type="number" value="24" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" /></div>
+            <div><label class="text-sm font-medium text-gray-700">Min order (AED)</label><input id="sp-min-order" type="number" value="0" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" /></div>
+          </div>
+          <div class="flex items-center gap-2"><input id="sp-urgent" type="checkbox" /><label for="sp-urgent" class="text-sm text-gray-700">Accept urgent / same-day orders</label></div>
+          <button onclick="saveFarmProfile()" class="px-4 py-2 bg-green-700 text-white rounded-lg text-sm font-medium hover:bg-green-800">Save profile</button>
+        </div>
+      </div>
+
+      <!-- FARM CHAT (farm side) -->
+      <div id="page-farm-chat" style="display:none" class="page flex flex-col h-full max-w-2xl">
+        <div class="px-5 py-3 border-b border-gray-100 bg-white flex items-center gap-3">
+          <button onclick="showPage('farm-orders')" class="text-sm text-gray-500 hover:text-gray-800">←</button>
+          <div>
+            <p id="farm-chat-title" class="text-sm font-semibold"></p>
+            <p id="farm-chat-subtitle" class="text-xs text-gray-400"></p>
+          </div>
+        </div>
+        <div id="farm-chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+        <div class="px-4 py-3 border-t border-gray-100 bg-white flex gap-2">
+          <input id="farm-chat-input" type="text" placeholder="Type a message..."
+            class="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500"
+            onkeydown="if(event.key==='Enter') sendFarmMessage()" />
+          <button onclick="sendFarmMessage()" class="px-4 py-2 bg-green-700 text-white rounded-lg text-sm font-medium hover:bg-green-800">Send</button>
+        </div>
+      </div>
+
+      <!-- MANAGER DASHBOARD -->
+      <div id="page-manager" style="display:none" class="page p-5 max-w-4xl">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-semibold">👑 CEO Dashboard</h1>
+            <p class="text-sm text-gray-500 mt-0.5">Fresh Supply UAE — Platform Overview</p>
+          </div>
+          <div class="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full">
+            <span class="text-amber-500">👑</span>
+            <span class="text-xs font-medium text-amber-700">Angelina — CEO & Founder</span>
+          </div>
+        </div>
+        <div id="mgr-stats" class="grid grid-cols-4 gap-3 mb-6"></div>
+        <div class="grid grid-cols-2 gap-5 mb-6">
+          <div><p class="text-sm font-semibold text-gray-800 mb-3">💰 Revenue breakdown</p><div id="mgr-revenue" class="bg-white border border-gray-100 rounded-xl p-4 space-y-3"></div></div>
+          <div><p class="text-sm font-semibold text-gray-800 mb-3">🌿 Farm verification queue</p><div id="mgr-farm-queue" class="space-y-2"></div></div>
+        </div>
+        <div class="grid grid-cols-2 gap-5">
+          <div><p class="text-sm font-semibold text-gray-800 mb-3">🍽️ Restaurants</p><div id="mgr-restaurants" class="space-y-2"></div></div>
+          <div><p class="text-sm font-semibold text-gray-800 mb-3">📦 Recent orders</p><div id="mgr-orders" class="space-y-2"></div></div>
+        </div>
+      </div>
+
+      <!-- MANAGER — ALL FARMS -->
+      <div id="page-mgr-farms" style="display:none" class="page p-5 max-w-3xl">
+        <h1 class="text-xl font-semibold mb-1">🌿 All Farms</h1>
+        <p class="text-sm text-gray-500 mb-4">Verify and manage UAE farms</p>
+        <div id="mgr-all-farms" class="space-y-2"></div>
+      </div>
+
+      <!-- MANAGER — ALL ORDERS -->
+      <div id="page-mgr-orders" style="display:none" class="page p-5 max-w-3xl">
+        <h1 class="text-xl font-semibold mb-1">📦 All Orders</h1>
+        <p class="text-sm text-gray-500 mb-4">Every order on the platform</p>
+        <div id="mgr-all-orders" class="space-y-2"></div>
+      </div>
+
+      <!-- MANAGER — ALL RESTAURANTS -->
+      <div id="page-mgr-restaurants" style="display:none" class="page p-5 max-w-3xl">
+        <h1 class="text-xl font-semibold mb-1">🍽️ Restaurants</h1>
+        <p class="text-sm text-gray-500 mb-4">All restaurants signed up</p>
+        <div id="mgr-all-restaurants" class="space-y-2"></div>
+      </div>
+
+      <!-- MANAGER — ANALYTICS -->
+      <div id="page-mgr-analytics" style="display:none" class="page p-5 max-w-4xl">
+        <h1 class="text-xl font-semibold mb-1">📈 Analytics</h1>
+        <p class="text-sm text-gray-500 mb-5">Platform performance over time</p>
+        <div id="mgr-analytics-content"></div>
+      </div>
+
+      <!-- MANAGER — ANNOUNCEMENTS -->
+      <div id="page-mgr-announce" style="display:none" class="page p-5 max-w-2xl">
+        <h1 class="text-xl font-semibold mb-1">📣 Announcements</h1>
+        <p class="text-sm text-gray-500 mb-4">Send messages to all farms or restaurants</p>
+        <div class="bg-white border border-gray-100 rounded-xl p-4 mb-5">
+          <p class="text-sm font-semibold mb-3">New announcement</p>
+          <div class="mb-3">
+            <label class="text-xs font-medium text-gray-700 block mb-1">Send to</label>
+            <div class="flex gap-2">
+              <button onclick="setAnnounceTarget('all')" id="ann-all" class="ann-target px-3 py-1.5 rounded-lg text-xs font-medium border bg-green-700 text-white border-green-700">Everyone</button>
+              <button onclick="setAnnounceTarget('farm')" id="ann-farm" class="ann-target px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-600">Farms only</button>
+              <button onclick="setAnnounceTarget('restaurant')" id="ann-restaurant" class="ann-target px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-600">Restaurants only</button>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="text-xs font-medium text-gray-700 block mb-1">Title</label>
+            <input id="ann-title" type="text" placeholder="e.g. New feature available!" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" />
+          </div>
+          <div class="mb-3">
+            <label class="text-xs font-medium text-gray-700 block mb-1">Message</label>
+            <textarea id="ann-body" rows="3" placeholder="Write your announcement..." class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500 resize-none"></textarea>
+          </div>
+          <button onclick="sendAnnouncement()" class="px-4 py-2 bg-green-700 text-white rounded-lg text-sm font-medium hover:bg-green-800">📣 Send announcement</button>
+        </div>
+        <p class="text-sm font-semibold text-gray-700 mb-3">Recent announcements</p>
+        <div id="announce-list" class="space-y-2"></div>
+      </div>
+
+      <!-- MANAGER — DISPUTES -->
+      <div id="page-mgr-disputes" style="display:none" class="page p-5 max-w-3xl">
+        <h1 class="text-xl font-semibold mb-1">⚖️ Disputes</h1>
+        <p class="text-sm text-gray-500 mb-4">Handle complaints between farms and restaurants</p>
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5">
+          <p class="text-sm font-medium text-amber-800 mb-3">Log a new dispute</p>
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div><label class="text-xs font-medium text-gray-700">Order number</label><input id="disp-order" type="text" placeholder="e.g. FS-12345" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500" /></div>
+            <div><label class="text-xs font-medium text-gray-700">Reported by</label>
+              <select id="disp-by" class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white outline-none focus:border-green-500">
+                <option value="restaurant">Restaurant</option>
+                <option value="farm">Farm</option>
+              </select>
+            </div>
+          </div>
+          <div class="mb-3"><label class="text-xs font-medium text-gray-700">Issue</label>
+            <textarea id="disp-issue" rows="2" placeholder="Describe the issue..." class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-green-500 resize-none"></textarea>
+          </div>
+          <button onclick="logDispute()" class="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700">Log dispute</button>
+        </div>
+        <p class="text-sm font-semibold text-gray-700 mb-3">Open disputes</p>
+        <div id="disputes-list" class="space-y-2"></div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+const { createClient } = supabase;
+const sb = createClient(
+  'https://pbvcbsvpipknkgtvtiii.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBidmNic3ZwaXBrbmtndHZ0aWlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMTI5OTIsImV4cCI6MjA5NDU4ODk5Mn0.cqq-nIeChdsOSUqV3aWp_JwLVlxdv-aEK2Dt-JRBisU'
+);
+
+const PASSWORDS = { restaurant: '123456', farm: '1234', manager: '123' };
+
+let currentRole = null;
+let currentFarm = null;
+let cart = JSON.parse(localStorage.getItem('fs_cart') || '[]');
+let selectedDelivery = 'express';
+let currentCat = 'all';
+let currentEmirate = 'all';
+let currentChatOrderId = null;
+let notifCount = 0;
+
+function toast(msg, type='success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast show ${type==='error'?'bg-red-600':'bg-green-700'} text-white`;
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ── LOGIN ─────────────────────────────────────────────────────────────
+let selectedRole = null;
+async function selectRole(role) {
+  selectedRole = role;
+  document.querySelectorAll('.role-tile').forEach(t => { t.classList.remove('border-green-500','border-amber-500','shadow-md'); t.classList.add('border-gray-200'); });
+  const tile = document.getElementById('tile-' + role);
+  tile.classList.remove('border-gray-200');
+  tile.classList.add(role==='manager'?'border-amber-500':'border-green-500','shadow-md');
+  document.getElementById('password-box').style.display = 'block';
+  document.getElementById('pw-error').style.display = 'none';
+  document.getElementById('password-input').value = '';
+  document.getElementById('password-input').focus();
+  const labels = { restaurant:'🍽️ Restaurant password', farm:'🌿 Farm password', manager:'👑 Manager password' };
+  document.getElementById('password-label').textContent = labels[role];
+  if (role === 'farm') {
+    document.getElementById('farm-select-wrap').style.display = 'block';
+    const { data } = await sb.from('suppliers').select('id, name').eq('active', true).order('name');
+    const sel = document.getElementById('farm-select');
+    sel.innerHTML = '<option value="">-- Choose your farm --</option>' + (data||[]).map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
+  } else {
+    document.getElementById('farm-select-wrap').style.display = 'none';
+  }
+}
+
+async function checkPassword() {
+  const pw = document.getElementById('password-input').value;
+  if (pw !== PASSWORDS[selectedRole]) { document.getElementById('pw-error').style.display = 'block'; return; }
+  document.getElementById('pw-error').style.display = 'none';
+  if (selectedRole === 'farm') {
+    const farmId = document.getElementById('farm-select').value;
+    if (!farmId) { toast('Please select your farm', 'error'); return; }
+    const { data } = await sb.from('suppliers').select('*').eq('id', farmId).single();
+    currentFarm = data;
+  }
+  currentRole = selectedRole;
+  enterApp();
+}
+
+function enterApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'flex';
+  const roleLabels = { restaurant:'🍽️ Restaurant', farm:'🌿 Farm', manager:'👑 CEO' };
+  document.getElementById('sidebar-role').textContent = roleLabels[currentRole];
+  document.getElementById('sidebar-name').textContent = currentRole==='farm' ? currentFarm?.name : currentRole==='manager' ? 'Angelina' : 'My Restaurant';
+  buildNav();
+  updateCartBadge();
+  if (currentRole==='restaurant') showPage('marketplace');
+  else if (currentRole==='farm') showPage('farm-dashboard');
+  else showPage('manager');
+}
+
+function signOut() {
+  currentRole=null; currentFarm=null;
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('password-box').style.display = 'none';
+  document.querySelectorAll('.role-tile').forEach(t => { t.classList.remove('border-green-500','border-amber-500','shadow-md'); t.classList.add('border-gray-200'); });
+}
+
+// ── NAV ───────────────────────────────────────────────────────────────
+function buildNav() {
+  const items = {
+    restaurant: [
+      ['marketplace','🛒','Marketplace'],
+      ['compare','📊','Price Compare'],
+      ['farms','🌿','UAE Farms'],
+      ['cart','🛒','Cart'],
+      ['orders','📋','My Orders'],
+      ['recurring','🔄','Recurring'],
+      ['notifications','🔔','Notifications'],
+      ['freshness','🌱','Freshness'],
+      ['savings','💰','Savings'],
+    ],
+    farm: [
+      ['farm-dashboard','🏠','Dashboard'],
+      ['farm-orders','📋','Orders'],
+      ['farm-products','📦','My Products'],
+      ['farm-profile','🏪','Farm Profile'],
+      ['notifications','🔔','Notifications'],
+    ],
+    manager: [
+      ['manager','👑','CEO Dashboard'],
+      ['mgr-analytics','📈','Analytics'],
+      ['mgr-farms','🌿','Farms'],
+      ['mgr-orders','📦','All Orders'],
+      ['mgr-restaurants','🍽️','Restaurants'],
+      ['mgr-announce','📣','Announcements'],
+      ['mgr-disputes','⚖️','Disputes'],
+    ],
+  }[currentRole] || [];
+
+  document.getElementById('sidebar-nav').innerHTML = items.map(([page,icon,label]) =>
+    `<button onclick="showPage('${page}')" id="nav-${page}"
+      class="nav-btn w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-colors text-left">
+      <span>${icon}</span>${label}
+      ${page==='cart'?'<span id="cart-nav-badge" style="display:none" class="ml-auto text-xs bg-red-500 text-white px-1.5 py-0.5 rounded-full">0</span>':''}
+      ${page==='notifications'?'<span id="notif-nav-badge" style="display:none" class="ml-auto w-2 h-2 bg-red-500 rounded-full"></span>':''}
+    </button>`
+  ).join('');
+}
+
+function showPage(page) {
+  // Hide ALL pages first
+  document.querySelectorAll('.page').forEach(p => {
+    p.style.display = 'none';
+    p.style.visibility = 'hidden';
+    p.style.position = 'absolute';
+  });
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    b.classList.remove('bg-green-50','text-green-700','font-medium');
+    b.classList.add('text-gray-500');
+  });
+  // Show target page
+  const flexPages = ['cart','chat','farm-chat','marketplace'];
+  const el = document.getElementById('page-' + page);
+  if (el) {
+    el.style.display = flexPages.includes(page) ? 'flex' : 'block';
+    el.style.visibility = 'visible';
+    el.style.position = 'relative';
+  }
+  const nb = document.getElementById('nav-' + page);
+  if (nb) {
+    nb.classList.add('bg-green-50','text-green-700','font-medium');
+    nb.classList.remove('text-gray-500');
+  }
+
+  if (page==='marketplace')    loadProducts();
+  if (page==='compare')        loadComparison();
+  if (page==='farms')          loadFarms();
+  if (page==='cart')           renderCart();
+  if (page==='orders')         loadOrders();
+  if (page==='recurring')      loadRecurring();
+  if (page==='notifications')  loadNotifications();
+  if (page==='freshness')      loadFreshness();
+  if (page==='savings')        loadSavings();
+  if (page==='farm-dashboard') loadFarmDashboard();
+  if (page==='farm-orders')    loadFarmOrders();
+  if (page==='farm-products')  loadMyProducts();
+  if (page==='farm-profile')   loadFarmProfile();
+  if (page==='manager')        loadManagerDashboard();
+  if (page==='mgr-analytics')  loadMgrAnalytics();
+  if (page==='mgr-farms')      loadMgrFarms();
+  if (page==='mgr-orders')     loadMgrOrders();
+  if (page==='mgr-restaurants')loadMgrRestaurants();
+  if (page==='mgr-announce')   loadMgrAnnouncements();
+  if (page==='mgr-disputes')   loadMgrDisputes();
+}
+
+// ── MARKETPLACE ───────────────────────────────────────────────────────
+async function loadProducts() {
+  const search = document.getElementById('market-search')?.value || '';
+  let q = sb.from('products').select('*, suppliers(name, lead_time_hours, certifications, is_verified)').eq('active',true).eq('in_stock',true);
+  if (currentCat !== 'all') q = q.eq('category', currentCat);
+  if (search) q = q.ilike('name', `%${search}%`);
+  const { data } = await q.order('name');
+  const grid = document.getElementById('product-grid');
+  document.getElementById('product-count').textContent = `${data?.length||0} items`;
+  if (!data?.length) { grid.innerHTML = '<div class="col-span-3 text-center py-12 text-gray-400">No products found</div>'; return; }
+  grid.innerHTML = data.map(p => {
+    const certs = p.suppliers?.certifications||[];
+    const pj = JSON.stringify(p).replace(/"/g,'&quot;');
+    return `<div class="bg-white border border-gray-100 rounded-xl overflow-hidden hover:border-green-200 hover:shadow-sm transition-all">
+      <div class="h-24 bg-gray-50 flex items-center justify-center text-4xl">${p.emoji||'🌿'}</div>
+      <div class="p-3">
+        <p class="text-sm font-medium truncate">${p.name}</p>
+        <p class="text-xs text-gray-500 mb-2">📍 ${p.suppliers?.name||''}</p>
+        <div class="flex gap-1 flex-wrap mb-2">
+          ${p.suppliers?.is_verified?'<span class="text-xs px-1.5 py-0.5 rounded bg-green-50 text-green-700 border border-green-200 font-medium">✓ Verified</span>':''}
+          ${certs.includes('organic')?'<span class="text-xs px-1.5 py-0.5 rounded bg-green-50 text-green-800 border border-green-200 font-medium">Organic</span>':''}
+          ${certs.includes('halal')?'<span class="text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 font-medium">Halal</span>':''}
+        </div>
+        <div class="flex items-end justify-between">
+          <div>
+            <span class="text-sm font-semibold">AED ${Number(p.price_per_unit).toFixed(0)}</span>
+            <span class="text-xs text-gray-400">/${p.unit}</span>
+            <div class="text-xs text-gray-400 mt-0.5">🕐 ${p.suppliers?.lead_time_hours||2}h</div>
+          </div>
+          <button onclick="addToCart(JSON.parse(this.dataset.p))" data-p="${pj}"
+            class="w-8 h-8 bg-green-700 text-white rounded-full flex items-center justify-center hover:bg-green-800 text-lg leading-none">+</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterCat(cat) {
+  currentCat = cat;
+  document.querySelectorAll('.cat-btn').forEach(b => { b.classList.remove('bg-green-700','text-white','border-green-700'); b.classList.add('border-gray-200','text-gray-600'); });
+  const btn = document.getElementById('cat-' + cat);
+  if (btn) { btn.classList.add('bg-green-700','text-white','border-green-700'); btn.classList.remove('border-gray-200','text-gray-600'); }
+  loadProducts();
+}
+
+// ── PRICE COMPARISON ──────────────────────────────────────────────────
+async function loadComparison() {
+  const search = document.getElementById('compare-search')?.value || '';
+  const results = document.getElementById('compare-results');
+  if (!search) { results.innerHTML = '<div class="text-center py-12 text-gray-400">Type a product name to compare prices across farms</div>'; return; }
+  const { data } = await sb.from('products').select('*, suppliers(name, city, lead_time_hours, is_verified, rating)').eq('active',true).eq('in_stock',true).ilike('name', `%${search}%`).order('price_per_unit');
+  if (!data?.length) { results.innerHTML = '<div class="text-center py-12 text-gray-400">No products found</div>'; return; }
+
+  // Group by product name
+  const grouped = data.reduce((acc, p) => {
+    const key = p.name.toLowerCase();
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(p);
+    return acc;
+  }, {});
+
+  results.innerHTML = Object.entries(grouped).map(([name, products]) => {
+    const sorted = products.sort((a,b) => Number(a.price_per_unit) - Number(b.price_per_unit));
+    const lowestPrice = Number(sorted[0].price_per_unit);
+    return `<div class="mb-6">
+      <p class="text-sm font-semibold text-gray-800 mb-3 capitalize">${sorted[0].name}</p>
+      <div class="grid grid-cols-${Math.min(sorted.length, 3)} gap-3">
+        ${sorted.map((p, idx) => {
+          const price = Number(p.price_per_unit);
+          const savings = idx > 0 ? ((price - lowestPrice) / lowestPrice * 100).toFixed(0) : null;
+          const pj = JSON.stringify(p).replace(/"/g,'&quot;');
+          return `<div class="price-card bg-white border ${idx===0?'border-green-300 ring-1 ring-green-200':'border-gray-200'} rounded-xl p-4">
+            ${idx===0?'<div class="text-xs font-medium text-green-700 bg-green-50 rounded-full px-2 py-0.5 inline-block mb-2">💰 Best price</div>':''}
+            ${savings?`<div class="text-xs font-medium text-red-600 bg-red-50 rounded-full px-2 py-0.5 inline-block mb-2">+${savings}% more</div>`:''}
+            <p class="text-xl font-bold text-gray-900">AED ${price.toFixed(0)}<span class="text-xs font-normal text-gray-400">/${p.unit}</span></p>
+            <p class="text-sm font-medium text-gray-700 mt-1">${p.suppliers?.name||'Farm'}</p>
+            <p class="text-xs text-gray-400">📍 ${p.suppliers?.city||'UAE'} · 🕐 ${p.suppliers?.lead_time_hours||2}h</p>
+            ${p.suppliers?.is_verified?'<p class="text-xs text-green-600 mt-1">✓ Verified farm</p>':''}
+            <button onclick="addToCart(JSON.parse(this.dataset.p))" data-p="${pj}"
+              class="mt-3 w-full py-1.5 text-xs font-medium text-white bg-green-700 rounded-lg hover:bg-green-800">Add to cart</button>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── FARMS ─────────────────────────────────────────────────────────────
+async function loadFarms() {
+  let q = sb.from('suppliers').select('*').eq('active',true).order('rating',{ascending:false});
+  if (currentEmirate !== 'all') q = q.ilike('city', `%${currentEmirate}%`);
+  const { data } = await q;
+  const grid = document.getElementById('farms-grid');
+  if (!data?.length) { grid.innerHTML = '<div class="col-span-2 text-center py-12 text-gray-400">No farms found</div>'; return; }
+  grid.innerHTML = data.map(f => `
+    <div onclick="showFarmDetail('${f.id}')" class="bg-white border border-gray-100 rounded-xl p-4 cursor-pointer hover:border-green-200 hover:shadow-sm transition-all">
+      <div class="flex items-start gap-3 mb-3">
+        <div class="w-11 h-11 rounded-xl bg-green-50 border border-green-100 flex items-center justify-center text-xl shrink-0">${f.emoji||'🌿'}</div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium truncate">${f.name} ${f.is_verified?'✓':''}</p>
+          <p class="text-xs text-gray-400">📍 ${f.city||'UAE'}</p>
+        </div>
+      </div>
+      <div class="flex gap-1 flex-wrap mb-3">${(f.certifications||[]).slice(0,3).map(c=>`<span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200 capitalize">${c}</span>`).join('')}</div>
+      <div class="flex items-center justify-between">
+        <span class="text-xs text-amber-500">⭐ ${f.rating||'—'} (${f.total_orders||0})</span>
+        <span class="text-xs text-gray-400">🕐 ${f.lead_time_hours||'?'}h</span>
+        ${f.accepts_urgent?'<span class="text-xs text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full">⚡ Urgent</span>':''}
+      </div>
+      <button class="mt-3 w-full py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg">Browse products →</button>
+    </div>`).join('');
+}
+
+function filterEmirate(e) {
+  currentEmirate = e;
+  document.querySelectorAll('.emirate-btn').forEach(b => { b.className = 'emirate-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border border-gray-200 text-gray-600'; });
+  event.target.className = 'emirate-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap border bg-green-700 text-white border-green-700';
+  loadFarms();
+}
+
+async function showFarmDetail(id) {
+  showPage('farm-detail');
+  const { data: farm } = await sb.from('suppliers').select('*, products(*), reviews(*, restaurants(name))').eq('id', id).single();
+  if (!farm) return;
+  const badges = [farm.is_verified&&'✓ Verified', farm.gov_licensed&&'🏛️ Gov. Licensed', ...(farm.certifications||[])].filter(Boolean);
+  document.getElementById('farm-detail-content').innerHTML = `
+    <div class="flex items-start gap-4 mb-4">
+      <div class="w-16 h-16 rounded-xl bg-green-50 border border-green-100 flex items-center justify-center text-3xl shrink-0">${farm.emoji||'🌿'}</div>
+      <div class="flex-1">
+        <h1 class="text-xl font-semibold">${farm.name}</h1>
+        <p class="text-sm text-gray-500 mt-1">📍 ${farm.city}, UAE</p>
+        ${farm.description?`<p class="text-sm text-gray-500 mt-2">${farm.description}</p>`:''}
+        <div class="flex flex-wrap gap-2 mt-2">${badges.map(b=>`<span class="text-xs px-2.5 py-1 rounded-full border bg-green-50 text-green-700 border-green-200 font-medium">${b}</span>`).join('')}</div>
+      </div>
+    </div>
+    <div class="grid grid-cols-4 gap-3 mb-5">
+      ${[['Rating',farm.rating?farm.rating+' ⭐':'—'],['Orders',farm.total_orders||0],['Delivery',(farm.lead_time_hours||'?')+'h'],['Products',farm.products?.length||0]].map(([l,v])=>`<div class="bg-gray-50 rounded-lg p-2.5 text-center"><p class="text-base font-semibold">${v}</p><p class="text-xs text-gray-400 mt-0.5">${l}</p></div>`).join('')}
+    </div>
+    <p class="text-sm font-semibold mb-3">Products</p>
+    <div class="grid grid-cols-2 gap-3">
+      ${(farm.products||[]).map(p=>{
+        const pj = JSON.stringify({...p,supplier_id:farm.id,supplier_name:farm.name,suppliers:{name:farm.name,lead_time_hours:farm.lead_time_hours}}).replace(/"/g,'&quot;');
+        return `<div class="border border-gray-100 rounded-xl p-3">
+          <p class="text-sm font-medium">${p.emoji||'🌿'} ${p.name}</p>
+          <p class="text-xs text-gray-400 mt-0.5">${p.freshness_days}d shelf life · min ${p.min_quantity}${p.unit}</p>
+          <div class="flex items-center justify-between mt-3">
+            <div><span class="text-sm font-semibold">AED ${Number(p.price_per_unit).toFixed(0)}</span><span class="text-xs text-gray-400">/${p.unit}</span></div>
+            <button onclick="addToCart(JSON.parse(this.dataset.p))" data-p="${pj}" class="w-8 h-8 bg-green-700 text-white rounded-full flex items-center justify-center hover:bg-green-800 text-lg">+</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+// ── CART ──────────────────────────────────────────────────────────────
+function addToCart(product) {
+  const existing = cart.find(i => i.id === product.id);
+  if (existing) cart = cart.map(i => i.id===product.id ? {...i,qty:i.qty+1} : i);
+  else cart.push({...product, qty: product.min_quantity||1});
+  localStorage.setItem('fs_cart', JSON.stringify(cart));
+  updateCartBadge();
+  toast(`${product.name} added 🛒`);
+}
+
+function updateCartBadge() {
+  const count = cart.reduce((s,i) => s+i.qty, 0);
+  ['cart-badge','cart-nav-badge'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = count;
+    count > 0 ? el.classList.remove('hide') : el.classList.add('hide');
+  });
+}
+
+function setDelivery(type) {
+  selectedDelivery = type;
+  document.querySelectorAll('.delivery-opt').forEach(b => { b.classList.remove('border-green-500','bg-green-50'); b.classList.add('border-gray-200'); });
+  const el = document.getElementById('del-' + type);
+  if (el) { el.classList.add('border-green-500','bg-green-50'); el.classList.remove('border-gray-200'); }
+  // Show datetime picker only for scheduled
+  const wrap = document.getElementById('scheduled-time-wrap');
+  if (wrap) {
+    if (type === 'schedule') {
+      wrap.style.display = 'block';
+      const dt = document.getElementById('scheduled-datetime');
+      if (dt && !dt.value) {
+        const d = new Date(); d.setDate(d.getDate()+1); d.setHours(9,0,0);
+        dt.value = d.toISOString().slice(0,16);
+      }
+    } else {
+      wrap.style.display = 'none';
+    }
+  }
+  renderCart();
+}
+
+function renderCart() {
+  const fees = {express:15,morning:8,schedule:0};
+  const deliveryFee = fees[selectedDelivery]||15;
+  const subtotal = cart.reduce((s,i) => s+i.qty*Number(i.price_per_unit), 0);
+  const platformFee = subtotal*0.05;
+  const total = subtotal+deliveryFee+platformFee;
+  const itemsList = document.getElementById('cart-items-list');
+  const summaryItems = document.getElementById('cart-summary-items');
+  if (!cart.length) {
+    itemsList.innerHTML = `<div class="text-center py-16 text-gray-400"><p class="text-4xl mb-3">🛒</p><p class="font-medium text-gray-500 mb-1">Your cart is empty</p><button onclick="showPage('marketplace')" class="mt-3 px-4 py-2 bg-green-700 text-white rounded-lg text-sm">Browse marketplace</button></div>`;
+    summaryItems.innerHTML = ''; return;
+  }
+  const bySupplier = cart.reduce((acc,item) => {
+    const key = item.supplier_id||'unknown';
+    if (!acc[key]) acc[key] = {name:item.supplier_name||item.suppliers?.name||'Farm',items:[]};
+    acc[key].items.push(item); return acc;
+  }, {});
+  itemsList.innerHTML = Object.values(bySupplier).map(group => `
+    <div class="mb-5">
+      <p class="text-sm font-medium text-gray-700 mb-2">📍 ${group.name}</p>
+      <div class="border border-gray-100 rounded-xl overflow-hidden">
+        ${group.items.map((item,idx) => `
+          <div class="flex items-center gap-3 p-3 ${idx<group.items.length-1?'border-b border-gray-100':''}">
+            <div class="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center text-xl shrink-0">${item.emoji||'🌿'}</div>
+            <div class="flex-1 min-w-0"><p class="text-sm font-medium">${item.name}</p><p class="text-xs text-gray-400">AED ${Number(item.price_per_unit).toFixed(0)}/${item.unit}</p></div>
+            <div class="flex items-center gap-2">
+              <button onclick="changeQty('${item.id}',-1)" class="w-6 h-6 rounded-full border border-gray-200 flex items-center justify-center text-sm hover:bg-gray-50">−</button>
+              <span class="text-sm w-10 text-center font-medium">${item.qty}${item.unit}</span>
+              <button onclick="changeQty('${item.id}',1)" class="w-6 h-6 rounded-full border border-gray-200 flex items-center justify-center text-sm hover:bg-gray-50">+</button>
+            </div>
+            <div class="text-sm font-semibold w-16 text-right">AED ${(item.qty*Number(item.price_per_unit)).toFixed(0)}</div>
+            <button onclick="removeFromCart('${item.id}')" class="text-gray-300 hover:text-red-400 ml-1 text-lg">×</button>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+  summaryItems.innerHTML = cart.map(i=>`<div class="flex justify-between text-xs"><span class="text-gray-600 truncate mr-2">${i.name} ×${i.qty}</span><span class="font-medium shrink-0">AED ${(i.qty*Number(i.price_per_unit)).toFixed(0)}</span></div>`).join('');
+  document.getElementById('sum-subtotal').textContent = `AED ${subtotal.toFixed(0)}`;
+  document.getElementById('sum-delivery').textContent = deliveryFee===0?'Free':`AED ${deliveryFee}`;
+  document.getElementById('sum-fee').textContent = `AED ${platformFee.toFixed(0)}`;
+  document.getElementById('sum-total').textContent = `AED ${total.toFixed(0)}`;
+  document.getElementById('cart-savings-msg').textContent = `Saving ~AED ${(subtotal*0.15).toFixed(0)} vs middleman prices 💚`;
+}
+
+function changeQty(id,delta) {
+  cart = cart.map(i => i.id===id?{...i,qty:Math.max(1,i.qty+delta)}:i);
+  localStorage.setItem('fs_cart',JSON.stringify(cart));
+  updateCartBadge(); renderCart();
+}
+function removeFromCart(id) {
+  cart = cart.filter(i=>i.id!==id);
+  localStorage.setItem('fs_cart',JSON.stringify(cart));
+  updateCartBadge(); renderCart();
+}
+
+async function placeOrder() {
+  if (!cart.length) return toast('Cart is empty','error');
+  const deliveryFee = {express:15,morning:8,schedule:0}[selectedDelivery]||15;
+  const notes = document.getElementById('delivery-notes')?.value||'';
+  // Get scheduled time if applicable
+  let requestedDelivery = null;
+  if (selectedDelivery === 'schedule') {
+    const dt = document.getElementById('scheduled-datetime')?.value;
+    if (!dt) return toast('Please pick a delivery date and time','error');
+    requestedDelivery = new Date(dt).toISOString();
+  } else if (selectedDelivery === 'express') {
+    requestedDelivery = new Date(Date.now() + 4*3600000).toISOString();
+  } else if (selectedDelivery === 'morning') {
+    const d = new Date(); d.setDate(d.getDate()+1); d.setHours(8,0,0);
+    requestedDelivery = d.toISOString();
+  }
+  const bySupplier = cart.reduce((acc,item) => { const k=item.supplier_id; if(!acc[k])acc[k]=[]; acc[k].push(item); return acc; },{});
+  try {
+    for (const [supplierId,items] of Object.entries(bySupplier)) {
+      const subtotal = items.reduce((s,i)=>s+i.qty*Number(i.price_per_unit),0);
+      const platformFee = parseFloat((subtotal*0.05).toFixed(2));
+      const total = subtotal+deliveryFee+platformFee;
+      const orderNumber = 'FS-'+Math.floor(Math.random()*90000+10000);
+      const {data:order,error} = await sb.from('orders').insert({
+        order_number:orderNumber, restaurant_id:null, supplier_id:supplierId,
+        subtotal, platform_fee:platformFee, total,
+        is_urgent:selectedDelivery==='express', delivery_notes:notes,
+        requested_delivery: requestedDelivery,
+        status:'pending'
+      }).select().single();
+      if (error) throw error;
+      await sb.from('order_items').insert(items.map(i=>({
+        order_id:order.id, product_id:i.id, product_name:i.name,
+        unit:i.unit, quantity:i.qty, unit_price:Number(i.price_per_unit)
+      })));
+      // Create notification for the farm
+      await sb.from('notifications').insert({
+        user_id: supplierId,
+        type: 'new_order',
+        title: `New order ${orderNumber}`,
+        body: `${items.length} item(s) · AED ${total.toFixed(0)} ${selectedDelivery==='express'?'· ⚡ Urgent':''}`,
+        data: JSON.stringify({order_id: order.id})
+      });
+    }
+    cart=[]; localStorage.setItem('fs_cart',JSON.stringify(cart));
+    updateCartBadge();
+    toast('Orders placed! 🎉');
+    showPage('orders');
+  } catch(err) { toast(err.message||'Failed to place order','error'); }
+}
+
+// ── ORDERS ────────────────────────────────────────────────────────────
+async function loadOrders() {
+  const {data} = await sb.from('orders').select('*, suppliers(name), order_items(*)').order('created_at',{ascending:false}).limit(30);
+  const list = document.getElementById('orders-list');
+  const SC = {pending:'bg-amber-100 text-amber-700',confirmed:'bg-blue-100 text-blue-700',preparing:'bg-blue-100 text-blue-700',in_transit:'bg-purple-100 text-purple-700',delivered:'bg-green-100 text-green-700',cancelled:'bg-gray-100 text-gray-500'};
+  if (!data?.length) { list.innerHTML='<div class="text-center py-12 text-gray-400">No orders yet.</div>'; return; }
+  list.innerHTML = data.map(o=>`
+    <div class="bg-white border border-gray-100 rounded-xl p-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center text-xs font-semibold text-green-700 shrink-0">${(o.suppliers?.name||'?').slice(0,2).toUpperCase()}</div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2"><p class="text-sm font-medium">${o.suppliers?.name||'Farm'}</p>${o.is_urgent?'<span class="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-medium">Urgent</span>':''}</div>
+          <p class="text-xs text-gray-500">${o.order_number} · ${new Date(o.created_at).toLocaleDateString('en-AE',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</p>
+        </div>
+        <div class="text-right">
+          <p class="text-sm font-semibold">AED ${Number(o.total).toFixed(0)}</p>
+          <span class="text-xs px-2 py-0.5 rounded-full font-medium ${SC[o.status]||'bg-gray-100 text-gray-500'} capitalize">${o.status.replace('_',' ')}</span>
+        </div>
+      </div>
+      <button onclick="openChat('${o.id}','${o.order_number}','${o.suppliers?.name||'Farm'}')"
+        class="mt-2 w-full py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100">
+        💬 Chat with farm
+      </button>
+    </div>`).join('');
+}
+
+// ── CHAT (Restaurant side) ────────────────────────────────────────────
+async function openChat(orderId, orderNumber, farmName) {
+  currentChatOrderId = orderId;
+  document.getElementById('chat-title').textContent = `Chat — ${farmName}`;
+  document.getElementById('chat-subtitle').textContent = `Order ${orderNumber}`;
+  showPage('chat');
+  await loadChatMessages();
+}
+
+async function loadChatMessages() {
+  if (!currentChatOrderId) return;
+  const {data} = await sb.from('messages').select('*').eq('order_id', currentChatOrderId).order('created_at');
+  const container = document.getElementById('chat-messages');
+  if (!data?.length) { container.innerHTML='<div class="text-center py-8 text-gray-400 text-sm">No messages yet. Start the conversation!</div>'; return; }
+  container.innerHTML = data.map(m => {
+    const isMe = m.sender_role === 'restaurant';
+    return `<div class="flex ${isMe?'justify-end':'justify-start'}">
+      <div class="max-w-xs">
+        <p class="text-xs text-gray-400 mb-1 ${isMe?'text-right':'text-left'}">${m.sender_name}</p>
+        <div class="px-3 py-2 text-sm ${isMe?'chat-bubble-out':'chat-bubble-in'}">${m.content}</div>
+        <p class="text-xs text-gray-300 mt-1 ${isMe?'text-right':'text-left'}">${new Date(m.created_at).toLocaleTimeString('en-AE',{hour:'2-digit',minute:'2-digit'})}</p>
+      </div>
+    </div>`;
+  }).join('');
+  container.scrollTop = container.scrollHeight;
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const content = input.value.trim();
+  if (!content || !currentChatOrderId) return;
+  input.value = '';
+  await sb.from('messages').insert({
+    order_id: currentChatOrderId,
+    sender_role: 'restaurant',
+    sender_name: 'Restaurant',
+    content
+  });
+  await loadChatMessages();
+}
+
+// ── CHAT (Farm side) ──────────────────────────────────────────────────
+async function openFarmChat(orderId, orderNumber, restaurantName) {
+  currentChatOrderId = orderId;
+  document.getElementById('farm-chat-title').textContent = `Chat — ${restaurantName}`;
+  document.getElementById('farm-chat-subtitle').textContent = `Order ${orderNumber}`;
+  showPage('farm-chat');
+  await loadFarmChatMessages();
+}
+
+async function loadFarmChatMessages() {
+  if (!currentChatOrderId) return;
+  const {data} = await sb.from('messages').select('*').eq('order_id', currentChatOrderId).order('created_at');
+  const container = document.getElementById('farm-chat-messages');
+  if (!data?.length) { container.innerHTML='<div class="text-center py-8 text-gray-400 text-sm">No messages yet.</div>'; return; }
+  container.innerHTML = data.map(m => {
+    const isMe = m.sender_role === 'farm';
+    return `<div class="flex ${isMe?'justify-end':'justify-start'}">
+      <div class="max-w-xs">
+        <p class="text-xs text-gray-400 mb-1 ${isMe?'text-right':'text-left'}">${m.sender_name}</p>
+        <div class="px-3 py-2 text-sm ${isMe?'chat-bubble-out':'chat-bubble-in'}">${m.content}</div>
+        <p class="text-xs text-gray-300 mt-1 ${isMe?'text-right':'text-left'}">${new Date(m.created_at).toLocaleTimeString('en-AE',{hour:'2-digit',minute:'2-digit'})}</p>
+      </div>
+    </div>`;
+  }).join('');
+  container.scrollTop = container.scrollHeight;
+}
+
+async function sendFarmMessage() {
+  const input = document.getElementById('farm-chat-input');
+  const content = input.value.trim();
+  if (!content || !currentChatOrderId) return;
+  input.value = '';
+  await sb.from('messages').insert({
+    order_id: currentChatOrderId,
+    sender_role: 'farm',
+    sender_name: currentFarm?.name || 'Farm',
+    content
+  });
+  await loadFarmChatMessages();
+}
+
+// ── RECURRING ORDERS ─────────────────────────────────────────────────
+let recurringProducts = []; // products from selected farm
+
+function showRecurringForm() {
+  document.getElementById('recurring-form').classList.remove('hide');
+  document.getElementById('rec-products-wrap').classList.add('hide');
+  document.getElementById('rec-no-farm').classList.remove('hide');
+  recurringProducts = [];
+  sb.from('suppliers').select('id,name').eq('active',true).order('name').then(({data}) => {
+    document.getElementById('rec-farm').innerHTML = '<option value="">-- Choose farm --</option>' +
+      (data||[]).map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
+  });
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('rec-date').value = today;
+}
+
+function hideRecurringForm() {
+  document.getElementById('recurring-form').classList.add('hide');
+  recurringProducts = [];
+}
+
+async function loadRecurringProducts() {
+  const farmId = document.getElementById('rec-farm').value;
+  if (!farmId) {
+    document.getElementById('rec-products-wrap').classList.add('hide');
+    document.getElementById('rec-no-farm').classList.remove('hide');
+    return;
+  }
+  const {data} = await sb.from('products').select('*').eq('supplier_id', farmId).eq('active',true).eq('in_stock',true).order('name');
+  recurringProducts = (data||[]).map(p => ({...p, selectedQty: 0}));
+  document.getElementById('rec-no-farm').classList.add('hide');
+  document.getElementById('rec-products-wrap').classList.remove('hide');
+  renderRecurringProducts();
+}
+
+function renderRecurringProducts() {
+  document.getElementById('rec-products-list').innerHTML = recurringProducts.map((p,i) => `
+    <div class="bg-white border border-gray-100 rounded-lg p-2.5 flex items-center gap-3">
+      <span class="text-lg">${p.emoji||'🌿'}</span>
+      <div class="flex-1 min-w-0">
+        <p class="text-xs font-medium truncate">${p.name}</p>
+        <p class="text-xs text-gray-400">AED ${Number(p.price_per_unit).toFixed(0)}/${p.unit}</p>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button onclick="changeRecQty(${i},-1)" class="w-6 h-6 rounded-full border border-gray-200 flex items-center justify-center text-sm hover:bg-gray-50">−</button>
+        <span class="text-sm w-12 text-center font-medium">${p.selectedQty > 0 ? p.selectedQty + p.unit : '—'}</span>
+        <button onclick="changeRecQty(${i},1)" class="w-6 h-6 rounded-full border border-gray-200 flex items-center justify-center text-sm hover:bg-gray-50">+</button>
+      </div>
+    </div>`).join('');
+}
+
+function changeRecQty(i, delta) {
+  recurringProducts[i].selectedQty = Math.max(0, recurringProducts[i].selectedQty + (recurringProducts[i].min_quantity||1) * delta);
+  renderRecurringProducts();
+}
+
+async function saveRecurring() {
+  const farmId = document.getElementById('rec-farm').value;
+  const freq   = document.getElementById('rec-freq').value;
+  const date   = document.getElementById('rec-date').value;
+  const notes  = document.getElementById('rec-notes').value;
+  if (!farmId) return toast('Please select a farm','error');
+  if (!date)   return toast('Please select a start date','error');
+
+  const selectedItems = recurringProducts.filter(p => p.selectedQty > 0).map(p => ({
+    name: p.name, qty: p.selectedQty, unit: p.unit, product_id: p.id, emoji: p.emoji||'🌿'
+  }));
+  if (!selectedItems.length) return toast('Please select at least one product','error');
+
+  const {error} = await sb.from('recurring_orders').insert({
+    supplier_id: farmId, items: JSON.stringify(selectedItems),
+    frequency: freq, next_order_date: date, delivery_notes: notes, active: true
+  });
+  if (error) return toast(error.message,'error');
+  toast('Recurring order scheduled! ✅');
+  hideRecurringForm();
+  loadRecurring();
+}
+
+async function loadRecurring() {
+  const {data} = await sb.from('recurring_orders').select('*, suppliers(name)').eq('active',true).order('next_order_date');
+  const list = document.getElementById('recurring-list');
+  const freqLabels = {weekly:'Every week',biweekly:'Every 2 weeks',monthly:'Every month'};
+  if (!data?.length) { list.innerHTML='<div class="text-center py-12 text-gray-400">No recurring orders yet. Schedule one above!</div>'; return; }
+  list.innerHTML = data.map(r => {
+    const items = typeof r.items==='string'?JSON.parse(r.items):r.items;
+    return `<div class="bg-white border border-gray-100 rounded-xl p-4">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-1">
+            <p class="text-sm font-semibold">${r.suppliers?.name||'Farm'}</p>
+            <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">${freqLabels[r.frequency]||r.frequency}</span>
+          </div>
+          <p class="text-xs text-gray-400 mb-2">Next order: ${new Date(r.next_order_date).toLocaleDateString('en-AE',{month:'long',day:'numeric',year:'numeric'})}</p>
+          <div class="flex gap-2 flex-wrap">
+            ${(Array.isArray(items)?items:[]).map(i=>`<span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">${i.name} · ${i.qty}${i.unit}</span>`).join('')}
+          </div>
+          ${r.delivery_notes?`<p class="text-xs text-gray-400 mt-1">📝 ${r.delivery_notes}</p>`:''}
+        </div>
+        <button onclick="cancelRecurring('${r.id}')" class="text-red-400 hover:text-red-600 text-xs font-medium">Cancel</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function cancelRecurring(id) {
+  if (!confirm('Cancel this recurring order?')) return;
+  await sb.from('recurring_orders').update({active:false}).eq('id',id);
+  toast('Recurring order cancelled');
+  loadRecurring();
+}
+
+// ── NOTIFICATIONS ─────────────────────────────────────────────────────
+async function loadNotifications() {
+  let q = sb.from('notifications').select('*').order('created_at',{ascending:false}).limit(20);
+  if (currentRole==='farm' && currentFarm) {
+    q = q.eq('user_id', currentFarm.id);
+  } else if (currentRole==='restaurant') {
+    // Restaurants see all announcements
+    q = q.eq('type', 'announcement');
+  }
+  const {data} = await q;
+  const list = document.getElementById('notif-list');
+  const typeIcons = {new_order:'🛒',order_confirmed:'✅',order_preparing:'👨‍🍳',order_in_transit:'🚚',order_delivered:'📦',freshness_alert:'🌿',order_cancelled:'❌',announcement:'📣'};
+  if (!data?.length) { list.innerHTML='<div class="text-center py-12 text-gray-400">No notifications yet.</div>'; }
+  else {
+    list.innerHTML = data.map(n=>`
+      <div onclick="markNotifRead('${n.id}', this)" class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${n.read?'bg-white border-gray-100':'bg-green-50 border-green-200'}">
+        <span class="text-xl mt-0.5 shrink-0">${typeIcons[n.type]||'🔔'}</span>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium ${n.read?'text-gray-700':'text-gray-900'}">${n.title}</p>
+          ${n.body?`<p class="text-xs text-gray-500 mt-0.5">${n.body}</p>`:''}
+          <p class="text-xs text-gray-400 mt-1">${new Date(n.created_at).toLocaleDateString('en-AE',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</p>
+        </div>
+        ${!n.read?'<span class="w-2 h-2 bg-green-500 rounded-full mt-1.5 shrink-0"></span>':''}
+      </div>`).join('');
+  }
+  // Only show red dot if there are unread notifications
+  const unread = (data||[]).filter(n=>!n.read).length;
+  const badge = document.getElementById('notif-nav-badge');
+  if (badge) {
+    if (unread > 0) {
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+}
+
+async function markNotifRead(id, el) {
+  await sb.from('notifications').update({read:true}).eq('id',id);
+  el.classList.remove('bg-green-50','border-green-200');
+  el.classList.add('bg-white','border-gray-100');
+  const dot = el.querySelector('.notification-dot, span.w-2');
+  if (dot) dot.remove();
+}
+
+async function markAllNotifsRead() {
+  await sb.from('notifications').update({read:true});
+  loadNotifications();
+  toast('All marked as read');
+}
+
+// ── FRESHNESS ─────────────────────────────────────────────────────────
+async function loadFreshness() {
+  document.getElementById('freshness-content').innerHTML = '<div class="text-center py-12 text-gray-400">Freshness tracking activates after your first delivered order.</div>';
+}
+
+// ── SAVINGS ───────────────────────────────────────────────────────────
+async function loadSavings() {
+  const {data} = await sb.from('orders').select('subtotal,platform_fee,supplier_id,suppliers(name)').eq('status','delivered');
+  const content = document.getElementById('savings-content');
+  if (!data?.length) { content.innerHTML='<div class="text-center py-12 text-gray-400">No delivered orders yet.</div>'; return; }
+  const totalSpend = data.reduce((s,o)=>s+Number(o.subtotal),0);
+  const totalFees  = data.reduce((s,o)=>s+Number(o.platform_fee),0);
+  const netSavings = totalSpend*0.20-totalFees;
+  const byS = {};
+  data.forEach(o => { const k=o.supplier_id; if(!byS[k])byS[k]={name:o.suppliers?.name||'Farm',orders:0,spend:0}; byS[k].orders++; byS[k].spend+=Number(o.subtotal); });
+  content.innerHTML = `
+    <div class="grid grid-cols-3 gap-3 mb-6">
+      <div class="bg-green-50 border border-green-100 rounded-xl p-4"><p class="text-xs text-green-600 mb-1">Total saved</p><p class="text-2xl font-semibold text-green-800">AED ${netSavings.toFixed(0)}</p><p class="text-xs text-green-500 mt-1">vs middleman prices</p></div>
+      <div class="bg-gray-50 border rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Total orders</p><p class="text-2xl font-semibold">${data.length}</p></div>
+      <div class="bg-gray-50 border rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Avg markup avoided</p><p class="text-2xl font-semibold">~19%</p></div>
+    </div>
+    <p class="text-sm font-semibold mb-3">By farm</p>
+    <div class="space-y-2">${Object.values(byS).map(s=>`
+      <div class="border border-gray-100 rounded-xl p-3 flex items-center gap-3 bg-white">
+        <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center text-sm font-semibold text-green-700">${s.name.slice(0,2).toUpperCase()}</div>
+        <div class="flex-1"><p class="text-sm font-medium">${s.name}</p><p class="text-xs text-gray-400">${s.orders} orders · AED ${s.spend.toFixed(0)} spent</p></div>
+        <p class="text-sm font-semibold text-green-700">AED ${(s.spend*0.15).toFixed(0)} saved</p>
+      </div>`).join('')}</div>`;
+}
+
+// ── FARM DASHBOARD ────────────────────────────────────────────────────
+async function loadFarmDashboard() {
+  if (!currentFarm) return;
+  const {data:orders} = await sb.from('orders').select('*, restaurants(name), order_items(*)').eq('supplier_id',currentFarm.id).order('created_at',{ascending:false}).limit(10);
+  const pending = (orders||[]).filter(o=>o.status==='pending');
+  const todayRev = (orders||[]).filter(o=>o.status!=='cancelled'&&new Date(o.created_at).toDateString()===new Date().toDateString()).reduce((s,o)=>s+Number(o.subtotal),0);
+  const SC = {pending:'bg-amber-100 text-amber-700',confirmed:'bg-blue-100 text-blue-700',preparing:'bg-blue-100 text-blue-700',in_transit:'bg-purple-100 text-purple-700',delivered:'bg-green-100 text-green-700',cancelled:'bg-gray-100 text-gray-500'};
+  const NS = {pending:'confirmed',confirmed:'preparing',preparing:'in_transit',in_transit:'delivered'};
+  const AL = {pending:'Accept order',confirmed:'Start preparing',preparing:'Mark in transit',in_transit:'Mark delivered'};
+  document.getElementById('farm-dashboard-content').innerHTML = `
+    <div class="flex items-start justify-between mb-5">
+      <div></div>
+      <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border ${currentFarm.is_verified?'bg-green-50 text-green-700 border-green-200':'bg-amber-50 text-amber-700 border-amber-200'}">
+        🛡️ ${currentFarm.is_verified?'Verified farm':'Pending verification'}
+      </div>
+    </div>
+    <div class="grid grid-cols-4 gap-3 mb-6">
+      <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Pending</p><p class="text-2xl font-semibold">${pending.length}</p></div>
+      <div class="bg-green-50 border border-green-100 rounded-xl p-4"><p class="text-xs text-green-600 mb-1">Today revenue</p><p class="text-2xl font-semibold text-green-800">AED ${todayRev.toFixed(0)}</p></div>
+      <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Rating</p><p class="text-2xl font-semibold">${currentFarm.rating||'—'}</p></div>
+      <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Total orders</p><p class="text-2xl font-semibold">${currentFarm.total_orders||0}</p></div>
+    </div>
+    ${pending.length?'<p class="text-sm font-semibold text-red-700 mb-2">⚡ Needs action</p>':''}
+    <div class="space-y-3">
+      ${(orders||[]).slice(0,5).map(o=>`
+        <div class="border ${o.status==='pending'?'border-amber-200 bg-amber-50':'border-gray-100 bg-white'} rounded-xl p-3">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-1">
+                <p class="text-sm font-semibold">${o.restaurants?.name||'Restaurant'}</p>
+                ${o.is_urgent?'<span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">⚡ Urgent</span>':''}
+                <span class="text-xs px-2 py-0.5 rounded-full font-medium capitalize ${SC[o.status]}">${o.status.replace('_',' ')}</span>
+              </div>
+              <p class="text-xs text-gray-400">${o.order_number}</p>
+              <div class="bg-white rounded-lg border border-gray-100 p-2 mt-2">
+                ${(o.order_items||[]).map(i=>`<div class="flex justify-between text-xs py-0.5"><span>${i.product_name}</span><span class="text-gray-500">${i.quantity}${i.unit} · AED ${Number(i.line_total).toFixed(0)}</span></div>`).join('')}
+              </div>
+            </div>
+            <div class="text-right shrink-0">
+              <p class="text-base font-semibold">AED ${Number(o.subtotal).toFixed(0)}</p>
+              ${NS[o.status]?`<button onclick="advanceFarmOrder('${o.id}','${NS[o.status]}')" class="mt-2 px-3 py-1.5 bg-green-700 text-white rounded-lg text-xs font-medium hover:bg-green-800">${AL[o.status]}</button>`:''}
+              <button onclick="openFarmChat('${o.id}','${o.order_number}','${o.restaurants?.name||'Restaurant'}')" class="mt-1 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200 block w-full">💬 Chat</button>
+            </div>
+          </div>
+        </div>`).join('')}
+      ${!orders?.length?'<p class="text-sm text-gray-400 text-center py-8">No orders yet.</p>':''}
+    </div>`;
+}
+
+async function advanceFarmOrder(id,status) {
+  const updates = {status};
+  if (status==='confirmed') updates.confirmed_at = new Date().toISOString();
+  if (status==='delivered') updates.delivered_at = new Date().toISOString();
+  const {error} = await sb.from('orders').update(updates).eq('id',id);
+  if (error) return toast(error.message,'error');
+  // Send notification
+  await sb.from('notifications').insert({
+    user_id: id, // using order id as proxy since we don't have restaurant user id
+    type: `order_${status}`,
+    title: `Order ${status.replace('_',' ')}`,
+    body: `Your order has been ${status.replace('_',' ')} by ${currentFarm?.name}`,
+    data: JSON.stringify({order_id:id})
+  });
+  toast(`Order → ${status.replace('_',' ')} ✅`);
+  loadFarmDashboard();
+}
+
+// ── FARM ORDERS ───────────────────────────────────────────────────────
+async function loadFarmOrders() {
+  if (!currentFarm) return;
+  const {data} = await sb.from('orders').select('*, restaurants(name), order_items(*)').eq('supplier_id',currentFarm.id).order('created_at',{ascending:false});
+  const list = document.getElementById('farm-orders-list');
+  const SC = {pending:'bg-amber-100 text-amber-700',confirmed:'bg-blue-100 text-blue-700',preparing:'bg-blue-100 text-blue-700',in_transit:'bg-purple-100 text-purple-700',delivered:'bg-green-100 text-green-700',cancelled:'bg-gray-100 text-gray-500'};
+  const NS = {pending:'confirmed',confirmed:'preparing',preparing:'in_transit',in_transit:'delivered'};
+  const AL = {pending:'Accept',confirmed:'Start preparing',preparing:'Mark in transit',in_transit:'Mark delivered'};
+  if (!data?.length) { list.innerHTML='<div class="text-center py-12 text-gray-400">No orders yet.</div>'; return; }
+  list.innerHTML = data.map(o=>`
+    <div class="border ${o.status==='pending'?'border-amber-200 bg-amber-50':'border-gray-100 bg-white'} rounded-xl p-4">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-1">
+            <p class="text-sm font-semibold">${o.restaurants?.name||'Restaurant'}</p>
+            ${o.is_urgent?'<span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">⚡ Urgent</span>':''}
+            <span class="text-xs px-2 py-0.5 rounded-full font-medium capitalize ${SC[o.status]}">${o.status.replace('_',' ')}</span>
+          </div>
+          <p class="text-xs text-gray-400 mb-2">${o.order_number} · ${new Date(o.created_at).toLocaleDateString('en-AE',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</p>
+          <div class="bg-white rounded-lg border border-gray-100 p-2">
+            ${(o.order_items||[]).map(i=>`<div class="flex justify-between text-xs py-0.5"><span>${i.product_name}</span><span class="text-gray-500">${i.quantity}${i.unit} · AED ${Number(i.line_total).toFixed(0)}</span></div>`).join('')}
+          </div>
+        </div>
+        <div class="text-right shrink-0">
+          <p class="text-base font-semibold">AED ${Number(o.subtotal).toFixed(0)}</p>
+          ${NS[o.status]?`<button onclick="advanceFarmOrderList('${o.id}','${NS[o.status]}')" class="mt-2 px-3 py-1.5 bg-green-700 text-white rounded-lg text-xs font-medium hover:bg-green-800 block w-full">${AL[o.status]}</button>`:''}
+          <button onclick="openFarmChat('${o.id}','${o.order_number}','${o.restaurants?.name||'Restaurant'}')" class="mt-1 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200 block w-full">💬 Chat</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+async function advanceFarmOrderList(id,status) {
+  const updates={status};
+  if(status==='confirmed')updates.confirmed_at=new Date().toISOString();
+  if(status==='delivered')updates.delivered_at=new Date().toISOString();
+  await sb.from('orders').update(updates).eq('id',id);
+  toast(`Order → ${status.replace('_',' ')} ✅`);
+  loadFarmOrders();
+}
+
+// ── FARM PRODUCTS ─────────────────────────────────────────────────────
+async function loadMyProducts() {
+  if (!currentFarm) return;
+  const {data} = await sb.from('products').select('*').eq('supplier_id',currentFarm.id).eq('active',true).order('name');
+  const list = document.getElementById('my-products-list');
+  if (!data?.length) { list.innerHTML='<div class="text-center py-12 text-gray-400">No products yet.</div>'; return; }
+  list.innerHTML = data.map(p=>`
+    <div class="border border-gray-100 rounded-xl p-3 flex items-center gap-3 bg-white">
+      <span class="text-2xl">${p.emoji||'🌿'}</span>
+      <div class="flex-1"><p class="text-sm font-medium">${p.name}</p><p class="text-xs text-gray-400 capitalize">${p.category} · AED ${Number(p.price_per_unit).toFixed(2)}/${p.unit} · ${p.freshness_days}d shelf life</p></div>
+      <button onclick="deleteProduct('${p.id}')" class="text-gray-300 hover:text-red-500 text-lg">×</button>
+    </div>`).join('');
+}
+
+function toggleProductForm() { document.getElementById('product-form').classList.toggle('hide'); }
+
+async function saveProduct() {
+  if (!currentFarm) return;
+  const name = document.getElementById('p-name').value;
+  const price = document.getElementById('p-price').value;
+  if (!name||!price) return toast('Please fill in name and price','error');
+  const {error} = await sb.from('products').insert({
+    supplier_id:currentFarm.id, name, emoji:document.getElementById('p-emoji').value||'🌿',
+    category:document.getElementById('p-category').value, price_per_unit:parseFloat(price),
+    unit:document.getElementById('p-unit').value,
+    min_quantity:parseFloat(document.getElementById('p-min-qty').value)||1,
+    freshness_days:parseInt(document.getElementById('p-freshness').value)||3,
+    active:true, in_stock:true,
+  });
+  if (error) return toast(error.message,'error');
+  toast('Product added! ✅'); toggleProductForm(); loadMyProducts();
+}
+
+async function deleteProduct(id) {
+  if (!confirm('Remove this product?')) return;
+  await sb.from('products').update({active:false}).eq('id',id);
+  toast('Removed'); loadMyProducts();
+}
+
+// ── FARM PROFILE ──────────────────────────────────────────────────────
+function loadFarmProfile() {
+  if (!currentFarm) return;
+  document.getElementById('sp-name').value = currentFarm.name||'';
+  document.getElementById('sp-category').value = currentFarm.category||'greens';
+  document.getElementById('sp-phone').value = currentFarm.phone||'';
+  document.getElementById('sp-city').value = currentFarm.city||'';
+  document.getElementById('sp-description').value = currentFarm.description||'';
+  document.getElementById('sp-lead').value = currentFarm.lead_time_hours||24;
+  document.getElementById('sp-min-order').value = currentFarm.min_order_value||0;
+  document.getElementById('sp-urgent').checked = currentFarm.accepts_urgent||false;
+  if (currentFarm.is_verified) {
+    document.getElementById('verification-status').innerHTML = '<p class="text-sm font-medium text-green-800">🛡️ Your farm is verified ✓</p>';
+    document.getElementById('verification-status').className = 'rounded-xl p-4 mb-5 bg-green-50 border border-green-200';
+  }
+}
+
+async function saveFarmProfile() {
+  if (!currentFarm) return;
+  const updates = {
+    name:document.getElementById('sp-name').value,
+    category:document.getElementById('sp-category').value,
+    phone:document.getElementById('sp-phone').value,
+    city:document.getElementById('sp-city').value,
+    description:document.getElementById('sp-description').value,
+    lead_time_hours:parseInt(document.getElementById('sp-lead').value),
+    min_order_value:parseFloat(document.getElementById('sp-min-order').value),
+    accepts_urgent:document.getElementById('sp-urgent').checked, onboarded:true,
+  };
+  const {error} = await sb.from('suppliers').update(updates).eq('id',currentFarm.id);
+  if (error) return toast(error.message,'error');
+  currentFarm = {...currentFarm,...updates};
+  document.getElementById('sidebar-name').textContent = currentFarm.name;
+  toast('Profile saved! ✅');
+}
+
+// ── MANAGER ───────────────────────────────────────────────────────────
+async function loadManagerDashboard() {
+  const [ordersRes,suppliersRes,restaurantsRes] = await Promise.all([
+    sb.from('orders').select('id,subtotal,platform_fee,status,created_at'),
+    sb.from('suppliers').select('id,is_verified,active'),
+    sb.from('restaurants').select('id'),
+  ]);
+  const orders=ordersRes.data||[], suppliers=suppliersRes.data||[], restaurants=restaurantsRes.data||[];
+  const totalGMV = orders.filter(o=>o.status==='delivered').reduce((s,o)=>s+Number(o.subtotal),0);
+  const totalRev  = orders.filter(o=>o.status==='delivered').reduce((s,o)=>s+Number(o.platform_fee),0);
+  const verifiedFarms = suppliers.filter(s=>s.is_verified).length;
+  const pendingFarms  = suppliers.filter(s=>!s.is_verified&&s.active).length;
+  document.getElementById('mgr-stats').innerHTML = `
+    <div class="bg-green-50 border border-green-100 rounded-xl p-4"><p class="text-xs text-green-600 mb-1">Your revenue (5% fees)</p><p class="text-2xl font-bold text-green-800">AED ${totalRev.toFixed(0)}</p><p class="text-xs text-green-500 mt-1">from delivered orders</p></div>
+    <div class="bg-white border border-gray-100 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Total GMV</p><p class="text-2xl font-bold">AED ${totalGMV.toFixed(0)}</p></div>
+    <div class="bg-white border border-gray-100 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Total orders</p><p class="text-2xl font-bold">${orders.length}</p><p class="text-xs text-orange-500 mt-1">${orders.filter(o=>o.status==='pending').length} pending</p></div>
+    <div class="bg-white border border-gray-100 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Platform</p><p class="text-2xl font-bold">${restaurants.length} 🍽️</p><p class="text-xs text-gray-400 mt-1">${verifiedFarms} verified · ${pendingFarms} pending farms</p></div>`;
+  document.getElementById('mgr-revenue').innerHTML = `
+    <div class="flex justify-between py-2 border-b border-gray-100"><span class="text-sm text-gray-600">Total GMV</span><span class="font-semibold">AED ${totalGMV.toFixed(0)}</span></div>
+    <div class="flex justify-between py-2 border-b border-gray-100"><span class="text-sm text-gray-600">Platform fees (5%)</span><span class="font-semibold text-green-700">AED ${totalRev.toFixed(0)}</span></div>
+    <div class="flex justify-between py-2 border-b border-gray-100"><span class="text-sm text-gray-600">Delivered orders</span><span class="font-semibold">${orders.filter(o=>o.status==='delivered').length}</span></div>
+    <div class="flex justify-between py-2"><span class="text-sm text-gray-600">Avg order value</span><span class="font-semibold">AED ${orders.length?(totalGMV/orders.length).toFixed(0):0}</span></div>`;
+  const {data:pendingFarmsData} = await sb.from('suppliers').select('*').eq('is_verified',false).eq('active',true);
+  document.getElementById('mgr-farm-queue').innerHTML = !pendingFarmsData?.length
+    ? '<div class="bg-green-50 border border-green-100 rounded-xl p-4 text-sm text-green-700 text-center">✅ No farms pending verification</div>'
+    : pendingFarmsData.map(f=>`
+      <div class="bg-white border border-amber-200 rounded-xl p-3">
+        <div class="flex items-start justify-between gap-2">
+          <div><p class="text-sm font-medium">${f.emoji||'🌿'} ${f.name}</p><p class="text-xs text-gray-400">📍 ${f.city||'UAE'} · ${f.category||'—'}</p></div>
+          <div class="flex flex-col gap-1.5 shrink-0">
+            <button onclick="verifyFarm('${f.id}',true)" class="px-2 py-1 bg-green-700 text-white rounded text-xs font-medium">✓ Verify</button>
+            <button onclick="verifyFarm('${f.id}',false)" class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">✗ Reject</button>
+          </div>
+        </div>
+      </div>`).join('');
+  const {data:recentOrders} = await sb.from('orders').select('*, suppliers(name), restaurants(name)').order('created_at',{ascending:false}).limit(5);
+  const SC2 = {pending:'bg-amber-100 text-amber-700',confirmed:'bg-blue-100 text-blue-700',in_transit:'bg-purple-100 text-purple-700',delivered:'bg-green-100 text-green-700',cancelled:'bg-gray-100 text-gray-500'};
+  document.getElementById('mgr-orders').innerHTML = (recentOrders||[]).map(o=>`
+    <div class="bg-white border border-gray-100 rounded-xl p-3 flex items-center gap-3">
+      <div class="flex-1 min-w-0"><p class="text-xs font-medium truncate">${o.restaurants?.name||'Restaurant'} → ${o.suppliers?.name||'Farm'}</p><p class="text-xs text-gray-400">${o.order_number}</p></div>
+      <div class="text-right shrink-0"><p class="text-sm font-semibold">AED ${Number(o.subtotal).toFixed(0)}</p><span class="text-xs px-1.5 py-0.5 rounded-full font-medium capitalize ${SC2[o.status]||'bg-gray-100 text-gray-500'}">${o.status.replace('_',' ')}</span></div>
+    </div>`).join('')||'<p class="text-sm text-gray-400 text-center py-4">No orders yet</p>';
+  const {data:restData} = await sb.from('restaurants').select('*').order('created_at',{ascending:false}).limit(10);
+  document.getElementById('mgr-restaurants').innerHTML = (restData||[]).map(r=>`
+    <div class="bg-white border border-gray-100 rounded-xl p-3 flex items-center gap-3">
+      <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center text-sm font-semibold text-green-700 shrink-0">${(r.name||'?').slice(0,2).toUpperCase()}</div>
+      <div class="flex-1"><p class="text-sm font-medium">${r.name}</p><p class="text-xs text-gray-400">📍 ${r.city||'UAE'}</p></div>
+    </div>`).join('')||'<p class="text-sm text-gray-400 text-center py-4">No restaurants yet</p>';
+}
+
+async function loadMgrFarms() {
+  const {data} = await sb.from('suppliers').select('*').order('created_at',{ascending:false});
+  document.getElementById('mgr-all-farms').innerHTML = (data||[]).map(f=>`
+    <div class="bg-white border ${f.is_verified?'border-green-200':'border-amber-200'} rounded-xl p-3">
+      <div class="flex items-start justify-between gap-2">
+        <div><p class="text-sm font-medium">${f.emoji||'🌿'} ${f.name} ${f.is_verified?'<span class="text-green-600 text-xs">✓ Verified</span>':'<span class="text-amber-600 text-xs">⏳ Pending</span>'}</p><p class="text-xs text-gray-400">📍 ${f.city||'UAE'} · ${f.category||'—'}</p></div>
+        <div class="flex gap-1 shrink-0">
+          ${!f.is_verified?`<button onclick="verifyFarm('${f.id}',true)" class="px-2 py-1 bg-green-700 text-white rounded text-xs font-medium">✓ Verify</button>`:''}
+          <button onclick="verifyFarm('${f.id}',false)" class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">Remove</button>
+        </div>
+      </div>
+    </div>`).join('')||'<p class="text-sm text-gray-400 text-center py-8">No farms yet</p>';
+}
+
+async function loadMgrOrders() {
+  const {data} = await sb.from('orders').select('*, suppliers(name), restaurants(name)').order('created_at',{ascending:false}).limit(50);
+  const SC = {pending:'bg-amber-100 text-amber-700',confirmed:'bg-blue-100 text-blue-700',in_transit:'bg-purple-100 text-purple-700',delivered:'bg-green-100 text-green-700',cancelled:'bg-gray-100 text-gray-500'};
+  document.getElementById('mgr-all-orders').innerHTML = (data||[]).map(o=>`
+    <div class="bg-white border border-gray-100 rounded-xl p-3 flex items-center gap-3">
+      <div class="flex-1 min-w-0"><p class="text-sm font-medium truncate">${o.restaurants?.name||'?'} → ${o.suppliers?.name||'?'}</p><p class="text-xs text-gray-400">${o.order_number} · ${new Date(o.created_at).toLocaleDateString()}</p></div>
+      <div class="text-right shrink-0"><p class="text-sm font-semibold">AED ${Number(o.subtotal).toFixed(0)}</p><p class="text-xs text-green-600">fee: AED ${Number(o.platform_fee).toFixed(0)}</p><span class="text-xs px-1.5 py-0.5 rounded-full font-medium capitalize ${SC[o.status]||'bg-gray-100 text-gray-500'}">${o.status.replace('_',' ')}</span></div>
+    </div>`).join('')||'<p class="text-sm text-gray-400 text-center py-8">No orders yet</p>';
+}
+
+async function loadMgrRestaurants() {
+  const {data} = await sb.from('restaurants').select('*').order('created_at',{ascending:false});
+  document.getElementById('mgr-all-restaurants').innerHTML = (data||[]).map(r=>`
+    <div class="bg-white border border-gray-100 rounded-xl p-3 flex items-center gap-3">
+      <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center text-sm font-semibold text-green-700 shrink-0">${(r.name||'?').slice(0,2).toUpperCase()}</div>
+      <div class="flex-1"><p class="text-sm font-medium">${r.name}</p><p class="text-xs text-gray-400">📍 ${r.city||'UAE'} ${r.phone?'· 📞 '+r.phone:''}</p></div>
+      <p class="text-xs text-gray-400">${new Date(r.created_at).toLocaleDateString()}</p>
+    </div>`).join('')||'<p class="text-sm text-gray-400 text-center py-8">No restaurants yet</p>';
+}
+
+// ── ANALYTICS ─────────────────────────────────────────────────────────
+async function loadMgrAnalytics() {
+  const {data:orders} = await sb.from('orders').select('subtotal, platform_fee, status, created_at, supplier_id, suppliers(name)').order('created_at');
+  const {data:suppliers} = await sb.from('suppliers').select('id, name, total_orders, rating').eq('active',true).order('total_orders',{ascending:false}).limit(5);
+
+  // Group orders by month
+  const byMonth = {};
+  (orders||[]).forEach(o => {
+    const month = new Date(o.created_at).toLocaleDateString('en-AE',{month:'short',year:'numeric'});
+    if (!byMonth[month]) byMonth[month] = {orders:0, gmv:0, fees:0};
+    byMonth[month].orders++;
+    if (o.status==='delivered') { byMonth[month].gmv+=Number(o.subtotal); byMonth[month].fees+=Number(o.platform_fee); }
+  });
+
+  // Top farms by order count
+  const farmOrders = {};
+  (orders||[]).forEach(o => {
+    const k = o.supplier_id;
+    if (!farmOrders[k]) farmOrders[k] = {name:o.suppliers?.name||'Farm', orders:0, revenue:0};
+    farmOrders[k].orders++;
+    if (o.status==='delivered') farmOrders[k].revenue+=Number(o.subtotal);
+  });
+  const topFarms = Object.values(farmOrders).sort((a,b)=>b.revenue-a.revenue).slice(0,5);
+
+  const maxFees = Math.max(...Object.values(byMonth).map(m=>m.fees), 1);
+
+  document.getElementById('mgr-analytics-content').innerHTML = `
+    <div class="mb-6">
+      <p class="text-sm font-semibold text-gray-800 mb-3">📊 Monthly revenue (your 5% fees)</p>
+      <div class="bg-white border border-gray-100 rounded-xl p-4">
+        ${Object.keys(byMonth).length === 0 ? '<p class="text-sm text-gray-400 text-center py-6">No data yet</p>' :
+        `<div class="flex items-end gap-2 h-32">
+          ${Object.entries(byMonth).map(([month, d]) => {
+            const h = Math.max(4, Math.round((d.fees/maxFees)*100));
+            return `<div class="flex flex-col items-center gap-1 flex-1">
+              <p class="text-xs text-green-700 font-medium">AED ${d.fees.toFixed(0)}</p>
+              <div class="w-full bg-green-600 rounded-t-md" style="height:${h}%"></div>
+              <p class="text-xs text-gray-400 whitespace-nowrap">${month}</p>
+            </div>`;
+          }).join('')}
+        </div>`}
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-5 mb-6">
+      <div>
+        <p class="text-sm font-semibold text-gray-800 mb-3">🌿 Top farms by revenue</p>
+        <div class="space-y-2">
+          ${topFarms.length ? topFarms.map((f,i)=>`
+            <div class="bg-white border border-gray-100 rounded-xl p-3 flex items-center gap-3">
+              <div class="w-6 h-6 rounded-full ${i===0?'bg-amber-400':i===1?'bg-gray-300':i===2?'bg-amber-600':'bg-gray-100'} flex items-center justify-center text-xs font-bold text-white shrink-0">${i+1}</div>
+              <div class="flex-1"><p class="text-sm font-medium">${f.name}</p><p class="text-xs text-gray-400">${f.orders} orders</p></div>
+              <p class="text-sm font-semibold text-green-700">AED ${f.revenue.toFixed(0)}</p>
+            </div>`).join('') : '<p class="text-sm text-gray-400 text-center py-4">No data yet</p>'}
+        </div>
+      </div>
+      <div>
+        <p class="text-sm font-semibold text-gray-800 mb-3">📦 Orders by status</p>
+        <div class="bg-white border border-gray-100 rounded-xl p-4 space-y-3">
+          ${[['pending','⏳','Pending','bg-amber-400'],['confirmed','✅','Confirmed','bg-blue-400'],['in_transit','🚚','In transit','bg-purple-400'],['delivered','📦','Delivered','bg-green-500'],['cancelled','❌','Cancelled','bg-gray-300']].map(([s,icon,label,color])=>{
+            const count = (orders||[]).filter(o=>o.status===s).length;
+            const total = (orders||[]).length||1;
+            const pct = Math.round(count/total*100);
+            return `<div>
+              <div class="flex justify-between text-xs mb-1"><span class="text-gray-600">${icon} ${label}</span><span class="font-medium">${count} (${pct}%)</span></div>
+              <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden"><div class="${color} h-full rounded-full" style="width:${pct}%"></div></div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── ANNOUNCEMENTS ─────────────────────────────────────────────────────
+let announceTarget = 'all';
+function setAnnounceTarget(t) {
+  announceTarget = t;
+  document.querySelectorAll('.ann-target').forEach(b => { b.classList.remove('bg-green-700','text-white','border-green-700'); b.classList.add('border-gray-200','text-gray-600'); });
+  const btn = document.getElementById('ann-'+t);
+  if (btn) { btn.classList.add('bg-green-700','text-white','border-green-700'); btn.classList.remove('border-gray-200','text-gray-600'); }
+}
+
+async function sendAnnouncement() {
+  const title = document.getElementById('ann-title').value.trim();
+  const body  = document.getElementById('ann-body').value.trim();
+  if (!title || !body) return toast('Please fill in title and message','error');
+
+  const {data: farms} = await sb.from('suppliers').select('id').eq('active',true);
+  const farmIds = (farms||[]).map(f => f.id);
+
+  const notifs = [];
+
+  // Send to farms if target is all or farm
+  if (announceTarget === 'all' || announceTarget === 'farm') {
+    farmIds.forEach(uid => notifs.push({
+      user_id: uid, type: 'announcement', title, body,
+      data: JSON.stringify({from:'Fresh Supply CEO', target: announceTarget})
+    }));
+  }
+
+  // Send one general announcement for restaurants (use first farm id as placeholder)
+  if ((announceTarget === 'all' || announceTarget === 'restaurant') && farmIds.length) {
+    notifs.push({
+      user_id: farmIds[0], type: 'announcement', title: '📣 ' + title, body,
+      data: JSON.stringify({from:'Fresh Supply CEO', target:'restaurant', forRestaurants: true})
+    });
+  }
+
+  if (!notifs.length) return toast('No recipients found','error');
+
+  const {error} = await sb.from('notifications').insert(notifs);
+  if (error) return toast(error.message,'error');
+
+  document.getElementById('ann-title').value = '';
+  document.getElementById('ann-body').value = '';
+  toast('Announcement sent! 📣');
+  loadMgrAnnouncements();
+}
+
+async function loadMgrAnnouncements() {
+  const {data} = await sb.from('notifications').select('*').eq('type','announcement').order('created_at',{ascending:false}).limit(20);
+  const list = document.getElementById('announce-list');
+  // Deduplicate by title+created_at (same announcement sent to many users)
+  const seen = new Set();
+  const unique = (data||[]).filter(n => {
+    const key = n.title + n.created_at.slice(0,16);
+    if (seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+  if (!unique.length) { list.innerHTML='<p class="text-sm text-gray-400 text-center py-6">No announcements sent yet</p>'; return; }
+  list.innerHTML = unique.map(n=>`
+    <div class="bg-white border border-gray-100 rounded-xl p-3">
+      <div class="flex items-start justify-between gap-2">
+        <div><p class="text-sm font-medium">📣 ${n.title}</p><p class="text-xs text-gray-500 mt-0.5">${n.body}</p></div>
+        <p class="text-xs text-gray-400 shrink-0">${new Date(n.created_at).toLocaleDateString('en-AE',{month:'short',day:'numeric'})}</p>
+      </div>
+    </div>`).join('');
+}
+
+// ── DISPUTES ──────────────────────────────────────────────────────────
+async function logDispute() {
+  const orderNum = document.getElementById('disp-order').value.trim();
+  const reportedBy = document.getElementById('disp-by').value;
+  const issue = document.getElementById('disp-issue').value.trim();
+  if (!orderNum || !issue) return toast('Please fill in all fields','error');
+
+  // Store as a notification with type 'dispute' for now
+  const {error} = await sb.from('notifications').insert({
+    user_id: '00000000-0000-0000-0000-000000000000', // system placeholder
+    type: 'dispute',
+    title: `Dispute: ${orderNum}`,
+    body: `Reported by: ${reportedBy} | ${issue}`,
+    data: JSON.stringify({order_number:orderNum, reported_by:reportedBy, status:'open'}),
+    read: false
+  });
+  if (error) {
+    // Fallback: just store in localStorage
+    const disputes = JSON.parse(localStorage.getItem('fs_disputes')||'[]');
+    disputes.unshift({id:Date.now(), order_number:orderNum, reported_by:reportedBy, issue, status:'open', created_at:new Date().toISOString()});
+    localStorage.setItem('fs_disputes', JSON.stringify(disputes));
+  }
+  document.getElementById('disp-order').value='';
+  document.getElementById('disp-issue').value='';
+  toast('Dispute logged ✅');
+  loadMgrDisputes();
+}
+
+async function loadMgrDisputes() {
+  // Load from localStorage (simple storage for disputes)
+  const disputes = JSON.parse(localStorage.getItem('fs_disputes')||'[]');
+  const list = document.getElementById('disputes-list');
+  if (!disputes.length) {
+    list.innerHTML='<div class="bg-green-50 border border-green-100 rounded-xl p-4 text-sm text-green-700 text-center">✅ No open disputes</div>';
+    return;
+  }
+  list.innerHTML = disputes.map((d,i)=>`
+    <div class="bg-white border ${d.status==='open'?'border-amber-200':'border-green-200'} rounded-xl p-4">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-1">
+            <p class="text-sm font-semibold">Order ${d.order_number}</p>
+            <span class="text-xs px-2 py-0.5 rounded-full font-medium ${d.status==='open'?'bg-amber-100 text-amber-700':'bg-green-100 text-green-700'} capitalize">${d.status}</span>
+          </div>
+          <p class="text-xs text-gray-500">Reported by: ${d.reported_by}</p>
+          <p class="text-sm text-gray-700 mt-1">${d.issue}</p>
+          <p class="text-xs text-gray-400 mt-1">${new Date(d.created_at).toLocaleDateString('en-AE',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</p>
+        </div>
+        <div class="flex flex-col gap-1.5 shrink-0">
+          ${d.status==='open'?`<button onclick="resolveDispute(${i})" class="px-2 py-1 bg-green-700 text-white rounded text-xs font-medium">✓ Resolve</button>`:''}
+          <button onclick="deleteDispute(${i})" class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">Delete</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function resolveDispute(i) {
+  const disputes = JSON.parse(localStorage.getItem('fs_disputes')||'[]');
+  disputes[i].status = 'resolved';
+  localStorage.setItem('fs_disputes', JSON.stringify(disputes));
+  toast('Dispute resolved ✅');
+  loadMgrDisputes();
+}
+
+function deleteDispute(i) {
+  if (!confirm('Delete this dispute?')) return;
+  const disputes = JSON.parse(localStorage.getItem('fs_disputes')||'[]');
+  disputes.splice(i,1);
+  localStorage.setItem('fs_disputes', JSON.stringify(disputes));
+  toast('Dispute deleted');
+  loadMgrDisputes();
+}
+
+async function verifyFarm(id, approve) {
+  if (approve) {
+    await sb.from('suppliers').update({is_verified:true,gov_licensed:true,team_reviewed:true}).eq('id',id);
+    toast('Farm verified ✅');
+  } else {
+    if (!confirm('Remove this farm?')) return;
+    await sb.from('suppliers').update({active:false}).eq('id',id);
+    toast('Farm removed');
+  }
+  loadManagerDashboard();
+}
+</script>
+</body>
+</html>
