@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Fresh Supply UAE — Farm to Restaurant Marketplace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--green:#16a34a;--green-dark:#15803d;--green-xdark:#166534;--green-light:#f0fdf4;--green-pale:#dcfce7;--dark:#0a0f0d;--gray:#6b7280;--border:#e5e7eb;--white:#fff;}
+body{font-family:'Plus Jakarta Sans',sans-serif;color:#111827;background:#fff;overflow-x:hidden;-webkit-font-smoothing:antialiased;}
+a{text-decoration:none;}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:999;padding:0 6%;transition:all .3s;}
+nav.scrolled{background:rgba(255,255,255,0.95);backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,0,0,0.06);box-shadow:0 2px 20px rgba(0,0,0,0.05);}
+.nav-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:72px;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{width:38px;height:38px;background:var(--green-dark);border-radius:10px;display:flex;align-items:center;justify-content:center;}
+.logo-text{font-size:18px;font-weight:800;color:#111827;letter-spacing:-0.5px;}
+.nav-links{display:flex;align-items:center;gap:36px;}
+.nav-links a{font-size:14px;font-weight:500;color:#6b7280;transition:color .2s;}
+.nav-links a:hover{color:#111827;}
+.nav-right{display:flex;align-items:center;gap:12px;}
+.btn-ghost{font-size:14px;font-weight:600;color:#111827;padding:9px 20px;border-radius:8px;border:1.5px solid #d1d5db;transition:all .2s;}
+.btn-ghost:hover{background:#f9fafb;border-color:#9ca3af;}
+.btn-dark{font-size:14px;font-weight:700;color:#fff;background:#111827;padding:10px 20px;border-radius:8px;transition:background .2s;}
+.btn-dark:hover{background:#374151;}
+
+/* SCROLL ANIMATIONS */
+.fade-up{opacity:0;transform:translateY(32px);transition:opacity .65s ease,transform .65s ease;}
+.fade-up.visible{opacity:1;transform:translateY(0);}
+.delay-1{transition-delay:.1s;}.delay-2{transition-delay:.2s;}.delay-3{transition-delay:.3s;}.delay-4{transition-delay:.4s;}
+
+/* HERO */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:130px 6% 100px;background:radial-gradient(ellipse 80% 50% at 50% -5%,#dcfce7,transparent);}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);border-radius:999px;padding:7px 16px;font-size:13px;font-weight:500;color:#374151;margin-bottom:28px;box-shadow:0 1px 6px rgba(0,0,0,0.06);}
+.badge-dot{width:8px;height:8px;background:#22c55e;border-radius:50%;animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+h1{font-size:clamp(48px,7.5vw,88px);font-weight:800;line-height:1.0;letter-spacing:-3px;max-width:960px;margin:0 auto 24px;color:#0a0f0d;}
+h1 em{font-style:normal;color:var(--green-dark);}
+.hero-p{font-size:18px;color:#6b7280;max-width:520px;margin:0 auto 40px;line-height:1.65;}
+.hero-btns{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:72px;flex-wrap:wrap;}
+.btn-green{background:var(--green-dark);color:#fff;padding:15px 30px;border-radius:10px;font-size:15px;font-weight:700;display:inline-flex;align-items:center;gap:8px;transition:all .2s;}
+.btn-green:hover{background:var(--green-xdark);transform:translateY(-1px);box-shadow:0 8px 24px rgba(22,101,52,.25);}
+.btn-outline{background:#fff;color:#111827;padding:15px 30px;border-radius:10px;font-size:15px;font-weight:600;border:1.5px solid #d1d5db;transition:all .2s;}
+.btn-outline:hover{border-color:#6b7280;}
+.hero-stats{display:flex;border:1px solid var(--border);border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 4px 20px rgba(0,0,0,0.06);}
+.stat{padding:22px 40px;text-align:center;border-right:1px solid var(--border);}
+.stat:last-child{border-right:none;}
+.stat-n{font-size:30px;font-weight:800;color:#0a0f0d;letter-spacing:-1px;}
+.stat-l{font-size:12px;color:#9ca3af;font-weight:500;margin-top:3px;}
+
+/* LOGOS */
+.logos{padding:44px 6%;background:#fafafa;border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.logos-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:center;gap:48px;flex-wrap:wrap;}
+.logos-label{font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:1.5px;}
+.logos-div{width:1px;height:20px;background:var(--border);}
+.farm-names{display:flex;gap:40px;flex-wrap:wrap;align-items:center;}
+.farm-n{font-size:16px;font-weight:700;color:#d1d5db;}
+
+/* SECTIONS */
+.sec{padding:100px 6%;}
+.sec-dark{background:#0a0f0d;padding:100px 6%;}
+.mx{max-width:1200px;margin:0 auto;}
+.eye{font-size:12px;font-weight:700;color:var(--green-dark);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:14px;}
+.sec-dark .eye{color:#4ade80;}
+.sh{font-size:clamp(30px,4vw,50px);font-weight:800;letter-spacing:-1.5px;line-height:1.1;margin-bottom:16px;color:#0a0f0d;}
+.sec-dark .sh{color:#fff;}
+.sp{font-size:17px;color:#6b7280;line-height:1.65;max-width:480px;}
+
+/* HOW IT WORKS */
+.how-grid{display:grid;grid-template-columns:repeat(4,1fr);margin-top:64px;border:1px solid var(--border);border-radius:20px;overflow:hidden;}
+.how-item{padding:36px 28px;border-right:1px solid var(--border);background:#fff;transition:background .2s;}
+.how-item:last-child{border-right:none;}
+.how-item:hover{background:var(--green-light);}
+.how-n{width:32px;height:32px;background:var(--green-pale);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--green-dark);margin-bottom:20px;}
+.how-item h3{font-size:15px;font-weight:700;margin-bottom:8px;color:#111827;}
+.how-item p{font-size:14px;color:#6b7280;line-height:1.6;}
+
+/* FEATURES */
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin-top:64px;background:#1a2e1e;border-radius:20px;overflow:hidden;border:1px solid #1a2e1e;}
+.fc{background:#111827;padding:36px 32px;transition:background .25s;}
+.fc:hover{background:#0f1f11;}
+.fi{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:20px;}
+.fi-g{background:#052e16;}.fi-b{background:#0c1e45;}.fi-a{background:#2d1500;}.fi-p{background:#1e0a3c;}
+.fc h3{font-size:16px;font-weight:700;color:#f9fafb;margin-bottom:10px;}
+.fc p{font-size:14px;color:#6b7280;line-height:1.65;}
+
+/* WHO */
+.who-sec{background:#f9fafb;padding:100px 6%;}
+.who-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:64px;}
+.wc{background:#fff;border:1.5px solid var(--border);border-radius:24px;padding:44px 40px;}
+.wc.r{border-color:#bbf7d0;}.wc.f{border-color:#bfdbfe;}
+.wc-top{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+.wc-icon{width:50px;height:50px;border-radius:14px;display:flex;align-items:center;justify-content:center;}
+.wi-g{background:#dcfce7;}.wi-b{background:#dbeafe;}
+.wc h3{font-size:24px;font-weight:800;letter-spacing:-0.5px;}
+.wc>p{font-size:15px;color:#6b7280;margin-bottom:28px;line-height:1.6;}
+.cl{list-style:none;display:flex;flex-direction:column;gap:12px;margin-bottom:36px;}
+.cl li{display:flex;align-items:center;gap:12px;font-size:14px;font-weight:500;color:#374151;}
+.ck{width:22px;height:22px;border-radius:6px;background:var(--green-pale);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.wb{display:inline-flex;align-items:center;gap:8px;padding:13px 24px;border-radius:10px;font-size:14px;font-weight:700;transition:all .2s;}
+.wb-g{background:var(--green-dark);color:#fff;}.wb-g:hover{background:var(--green-xdark);}
+.wb-b{background:#1d4ed8;color:#fff;}.wb-b:hover{background:#1e40af;}
+
+/* TESTIMONIALS */
+.tg{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:64px;}
+.tc{padding:32px;border:1.5px solid var(--border);border-radius:20px;background:#fff;transition:border-color .2s,transform .2s;}
+.tc:hover{border-color:#9ca3af;transform:translateY(-3px);}
+.ts{display:flex;gap:3px;margin-bottom:20px;}
+.star{width:15px;height:15px;background:#fbbf24;clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);}
+.tq{font-size:15px;color:#374151;line-height:1.7;margin-bottom:20px;font-style:italic;}
+.ta{display:flex;align-items:center;gap:10px;}
+.av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;}
+.av1{background:#dcfce7;color:#166534;}.av2{background:#dbeafe;color:#1d4ed8;}.av3{background:#fef3c7;color:#92400e;}
+.an{font-size:14px;font-weight:700;color:#111827;}
+.ar{font-size:12px;color:#9ca3af;}
+
+/* PRICING */
+.pg{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:780px;margin:64px auto 0;}
+.pc{background:#fff;border:1.5px solid var(--border);border-radius:20px;padding:36px;position:relative;}
+.pc.pop{border-color:var(--green-dark);border-width:2px;}
+.pop-b{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--green-dark);color:#fff;font-size:12px;font-weight:700;padding:5px 16px;border-radius:999px;white-space:nowrap;}
+.pl{font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.pb{font-size:50px;font-weight:800;letter-spacing:-2px;color:#0a0f0d;}
+.pb sub{font-size:16px;font-weight:400;color:#9ca3af;letter-spacing:0;vertical-align:baseline;}
+.pn{font-size:14px;color:#9ca3af;margin-bottom:24px;line-height:1.5;}
+.pdiv{height:1px;background:var(--border);margin-bottom:24px;}
+.pfl{list-style:none;display:flex;flex-direction:column;gap:11px;margin-bottom:32px;}
+.pfl li{font-size:14px;color:#374151;display:flex;align-items:center;gap:10px;}
+.pfl li::before{content:'';width:18px;height:18px;background:var(--green-pale);border-radius:50%;flex-shrink:0;background-image:url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 5l2 2 4-4' stroke='%2316a34a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center;}
+.pcta{display:block;text-align:center;padding:13px;border-radius:10px;font-size:15px;font-weight:700;transition:all .2s;}
+.pco{border:1.5px solid #d1d5db;color:#374151;}.pco:hover{border-color:#374151;}
+.pcf{background:var(--green-dark);color:#fff;}.pcf:hover{background:var(--green-xdark);}
+
+/* CTA BANNER */
+.cta-sec{background:#0a0f0d;padding:100px 6%;text-align:center;position:relative;overflow:hidden;}
+.cta-glow{position:absolute;inset:0;background:radial-gradient(ellipse 50% 60% at 50% 50%,rgba(22,163,74,.15),transparent);pointer-events:none;}
+.cta-sec h2{font-size:clamp(36px,5vw,60px);font-weight:800;color:#fff;letter-spacing:-2px;line-height:1.1;margin-bottom:18px;}
+.cta-sec p{font-size:17px;color:#6b7280;margin-bottom:40px;line-height:1.6;}
+.cta-btns{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;}
+.ctag{background:var(--green-dark);color:#fff;padding:16px 32px;border-radius:12px;font-size:16px;font-weight:700;transition:all .2s;}
+.ctag:hover{background:var(--green-xdark);transform:translateY(-2px);}
+.ctaw{background:rgba(255,255,255,.07);color:#e5e7eb;padding:16px 32px;border-radius:12px;font-size:16px;font-weight:600;border:1px solid rgba(255,255,255,.1);transition:all .2s;}
+.ctaw:hover{background:rgba(255,255,255,.12);}
+
+/* FOOTER */
+footer{background:#05080a;padding:72px 6% 40px;color:#4b5563;}
+.fg{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:2.5fr 1fr 1fr 1fr;gap:56px;margin-bottom:56px;}
+.fb p{font-size:14px;color:#4b5563;margin-top:14px;line-height:1.7;max-width:260px;}
+.fc-col h4{font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:16px;}
+.fc-col a{display:block;font-size:14px;color:#4b5563;margin-bottom:10px;transition:color .2s;}
+.fc-col a:hover{color:#e5e7eb;}
+.fb-bot{max-width:1200px;margin:0 auto;padding-top:28px;border-top:1px solid #0f1117;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+.fb-bot p{font-size:13px;color:#374151;}
+
+@media(max-width:900px){
+  .how-grid{grid-template-columns:1fr 1fr;}
+  .feat-grid{grid-template-columns:1fr 1fr;}
+  .who-grid{grid-template-columns:1fr;}
+  .tg{grid-template-columns:1fr;}
+  .pg{grid-template-columns:1fr;}
+  .fg{grid-template-columns:1fr 1fr;}
+  .hero-stats{flex-wrap:wrap;}
+}
+</style>
+</head>
+<body>
+
+<nav id="navbar">
+  <div class="nav-inner">
+    <a href="landing.html" class="logo">
+      <div class="logo-icon">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <path d="M11 2C11 2 4 7 4 12C4 15.87 7.13 19 11 19C14.87 19 18 15.87 18 12C18 7 11 2 11 2Z" fill="white" opacity=".4"/>
+          <path d="M11 6C11 6 8 9 8 12C8 13.66 9.34 15 11 15C12.66 15 14 13.34 14 12C14 9 11 6 11 6Z" fill="white" opacity=".8"/>
+          <path d="M11 9C11 9 9.5 10.5 9.5 12C9.5 12.83 10.17 13.5 11 13.5C11.83 13.5 12.5 12.83 12.5 12C12.5 10.5 11 9 11 9Z" fill="white"/>
+        </svg>
+      </div>
+      <span class="logo-text">Fresh Supply</span>
+    </a>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+    </div>
+    <div class="nav-right">
+      <a href="index.html" class="btn-ghost">Sign in</a>
+      <a href="index.html" class="btn-dark">Get started →</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">
+    <span class="badge-dot"></span>
+    Now live across UAE — 4 verified farms onboarded
+  </div>
+  <h1>Fresh produce, <em>direct from UAE farms</em> to your kitchen</h1>
+  <p class="hero-p">Cut out the middleman. Order directly from verified UAE farms and save up to 30% on fresh produce — delivered same day.</p>
+  <div class="hero-btns">
+    <a href="index.html" class="btn-green">Start ordering for free <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+    <a href="#how" class="btn-outline">See how it works</a>
+  </div>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-n">4+</div><div class="stat-l">Verified farms</div></div>
+    <div class="stat"><div class="stat-n">2–4h</div><div class="stat-l">Express delivery</div></div>
+    <div class="stat"><div class="stat-n">30%</div><div class="stat-l">Avg. savings</div></div>
+    <div class="stat"><div class="stat-n">Zero</div><div class="stat-l">Middlemen</div></div>
+  </div>
+</section>
+
+<!-- LOGOS -->
+<div class="logos">
+  <div class="logos-inner">
+    <span class="logos-label">Trusted by</span>
+    <div class="logos-div"></div>
+    <div class="farm-names">
+      <span class="farm-n">Bustanica</span>
+      <span class="farm-n">Sunrise Farms</span>
+      <span class="farm-n">Al Dhafra Farms</span>
+      <span class="farm-n">Badia Farms</span>
+    </div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section class="sec" id="how">
+  <div class="mx">
+    <p class="eye">How it works</p>
+    <h2 class="sh">From farm to kitchen in 4 steps</h2>
+    <p class="sp">No phone calls, no invoices, no middlemen. Just fresh produce ordered online.</p>
+    <div class="how-grid">
+      <div class="how-item"><div class="how-n">01</div><h3>Browse UAE farms</h3><p>Explore verified local farms, compare prices and check certifications all in one place.</p></div>
+      <div class="how-item"><div class="how-n">02</div><h3>Place your order</h3><p>Add to cart, choose express or scheduled delivery, and add delivery notes to the farm.</p></div>
+      <div class="how-item"><div class="how-n">03</div><h3>Farm confirms</h3><p>The farm receives your order instantly and confirms. Chat directly if needed.</p></div>
+      <div class="how-item"><div class="how-n">04</div><h3>Fresh to your door</h3><p>Track order status in real time. Rate the farm after delivery to help the community.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="sec-dark" id="features">
+  <div class="mx">
+    <p class="eye">Features</p>
+    <h2 class="sh">Everything your kitchen needs</h2>
+    <p class="sp">Built specifically for UAE restaurants and farms.</p>
+    <div class="feat-grid">
+      <div class="fc"><div class="fi fi-g"><svg width="22" height="22" fill="none" stroke="#4ade80" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><h3>Verified UAE farms</h3><p>Every farm is reviewed by our team. Organic, Halal and Gov. Licensed certifications shown on every product.</p></div>
+      <div class="fc"><div class="fi fi-b"><svg width="22" height="22" fill="none" stroke="#60a5fa" stroke-width="1.8" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div><h3>Price comparison</h3><p>Compare the same product across all UAE farms instantly. Always get the best price.</p></div>
+      <div class="fc"><div class="fi fi-a"><svg width="22" height="22" fill="none" stroke="#fbbf24" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg></div><h3>Recurring orders</h3><p>Schedule weekly or monthly orders from your favourite farms. Set it once and never run out again.</p></div>
+      <div class="fc"><div class="fi fi-p"><svg width="22" height="22" fill="none" stroke="#a78bfa" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div><h3>Direct farm chat</h3><p>Message farms from any order. Discuss delivery times, special requests or availability in real time.</p></div>
+      <div class="fc"><div class="fi fi-g"><svg width="22" height="22" fill="none" stroke="#4ade80" stroke-width="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg></div><h3>PDF receipts</h3><p>One-click PDF export for every order. Professional receipts for accounting and VAT records.</p></div>
+      <div class="fc"><div class="fi fi-b"><svg width="22" height="22" fill="none" stroke="#60a5fa" stroke-width="1.8" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><h3>Ratings & reviews</h3><p>Rate farms after each delivery. Farms see all their reviews with star ratings and comments.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- FOR WHO -->
+<section class="who-sec">
+  <div class="mx">
+    <p class="eye">Who it's for</p>
+    <h2 class="sh">Built for both sides</h2>
+    <p class="sp">Whether you run a restaurant or a farm, Fresh Supply works for you.</p>
+    <div class="who-grid">
+      <div class="wc r">
+        <div class="wc-top"><div class="wc-icon wi-g"><svg width="26" height="26" fill="none" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 00-5 5v6h3.5a1.5 1.5 0 011.5 1.5v.5"/><path d="M18 22v-7"/></svg></div><h3>Restaurants</h3></div>
+        <p>Save time and money ordering fresh UAE produce directly from farms. No middlemen, no markup.</p>
+        <ul class="cl">
+          <li><div class="ck"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2 2 4-4" stroke="#16a34a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>Browse 4+ verified UAE farms</li>
+          <li><div class="ck"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2 2 4-4" stroke="#16a34a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>Same-day express delivery</li>
+          <li><div class="ck"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2 2 4-4" stroke="#16a34a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>Compare prices across all farms</li>
+          <li><div class="ck"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2 2 4-4" stroke="#16a34a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>Recurring orders on autopilot</li>
+          <li><div class="ck"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2 2 4-4" stroke="#16a34a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>PDF receipts for accounting</li>
+        </ul>
+        <a href="index.html" class="wb wb-g">Start ordering for free →</a>
+      </div>
+      <div class="wc f">
+        <div class="wc-top"><div class="wc-icon wi-b"><svg width="26" height="26" fill="none" stroke="#2563eb" stroke-width="1.8" stroke-linecap="round" viewBox="0 0 24 24"><path d="M2 20h20"/><path d="M5 20V10l7-7 7 7v10"/><path d="M9 20v-5h6v5"/></svg></div><h3>Farms</h3></div>
+        <p>Reach restaurants across UAE. Manage orders, track revenue and grow your business — for free.</p>
+        <ul class="cl">
+          <li><div class="ck"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2 2 4-4" stroke="#16a34a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>Free farm listing & verification</li>
+          <li><div class="ck"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2 2 4-4" stroke="#16a34a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>Order management dashboard</li>
+          <li><div class="ck"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2 2 4-4" stroke="#16a34a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>Revenue analytics & insights</li>
+          <li><div class="ck"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2 2 4-4" stroke="#16a34a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>Direct restaurant messaging</li>
+          <li><div class="ck"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2 2 4-4" stroke="#16a34a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>Verified farm badge & ratings</li>
+        </ul>
+        <a href="index.html" class="wb wb-b">List your farm →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="sec">
+  <div class="mx">
+    <p class="eye">Testimonials</p>
+    <h2 class="sh">Loved across UAE</h2>
+    <p class="sp">Restaurants and farms already saving time and money every day.</p>
+    <div class="tg">
+      <div class="tc"><div class="ts"><div class="star"></div><div class="star"></div><div class="star"></div><div class="star"></div><div class="star"></div></div><p class="tq">"We've cut our produce costs by 28% since switching to Fresh Supply. The quality is better and delivery is always on time."</p><div class="ta"><div class="av av1">MK</div><div><div class="an">Mohammed K.</div><div class="ar">Head Chef, Dubai Restaurant</div></div></div></div>
+      <div class="tc"><div class="ts"><div class="star"></div><div class="star"></div><div class="star"></div><div class="star"></div><div class="star"></div></div><p class="tq">"Finally a platform built for UAE farms. We've tripled our restaurant clients in 3 months and the dashboard is so easy to use."</p><div class="ta"><div class="av av2">SA</div><div><div class="an">Sara A.</div><div class="ar">Owner, Sunrise Farms Al Ain</div></div></div></div>
+      <div class="tc"><div class="ts"><div class="star"></div><div class="star"></div><div class="star"></div><div class="star"></div><div class="star"></div></div><p class="tq">"The recurring orders feature saves me hours every week. I set it once and fresh greens arrive every Monday without fail."</p><div class="ta"><div class="av av3">AH</div><div><div class="an">Ahmed H.</div><div class="ar">F&B Manager, Abu Dhabi Hotel</div></div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="sec" id="pricing" style="background:#f9fafb;padding-top:100px;padding-bottom:100px;">
+  <div class="mx" style="text-align:center;">
+    <p class="eye" style="margin:0 auto;">Pricing</p>
+    <h2 class="sh" style="margin:14px auto 16px;">Simple pricing, no surprises</h2>
+    <p class="sp" style="margin:0 auto;">Free to join. We only earn when you earn — 5% per completed order.</p>
+    <div class="pg">
+      <div class="pc"><div class="pl">For restaurants</div><div class="pb">Free<sub> to join</sub></div><div class="pn">Only 5% platform fee per order. No monthly fees, no contracts.</div><div class="pdiv"></div><ul class="pfl"><li>Browse all UAE farms</li><li>Unlimited orders</li><li>Direct farm chat</li><li>Order history & PDF exports</li><li>Recurring scheduled orders</li></ul><a href="index.html" class="pcta pco">Get started free</a></div>
+      <div class="pc pop"><div class="pop-b">Most popular</div><div class="pl">For farms</div><div class="pb">Free<sub> to list</sub></div><div class="pn">List your farm for free. 5% per order fulfilled — we grow when you grow.</div><div class="pdiv"></div><ul class="pfl"><li>Farm profile & verification badge</li><li>Order management dashboard</li><li>Analytics & revenue tracking</li><li>Direct restaurant messaging</li><li>Customer ratings & reviews</li></ul><a href="index.html" class="pcta pcf">List your farm →</a></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-sec">
+  <div class="cta-glow"></div>
+  <h2>Ready to go direct?</h2>
+  <p>Join UAE restaurants and farms already saving time and money. Free to start.</p>
+  <div class="cta-btns">
+    <a href="index.html" class="ctag">Start for free →</a>
+    <a href="index.html" class="ctaw">I'm a farm</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="fg">
+    <div class="fb">
+      <div class="logo"><div class="logo-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 2C11 2 4 7 4 12C4 15.87 7.13 19 11 19C14.87 19 18 15.87 18 12C18 7 11 2 11 2Z" fill="white" opacity=".4"/><path d="M11 6C11 6 8 9 8 12C8 13.66 9.34 15 11 15C12.66 15 14 13.34 14 12C14 9 11 6 11 6Z" fill="white" opacity=".8"/></svg></div><span class="logo-text" style="color:#e5e7eb;">Fresh Supply</span></div>
+      <p>UAE's direct farm to restaurant marketplace. No middlemen, no markup. Just fresh.</p>
+    </div>
+    <div class="fc-col"><h4>Platform</h4><a href="index.html">Marketplace</a><a href="index.html">UAE Farms</a><a href="#pricing">Pricing</a></div>
+    <div class="fc-col"><h4>For farms</h4><a href="index.html">List your farm</a><a href="index.html">Farm dashboard</a><a href="index.html">Analytics</a></div>
+    <div class="fc-col"><h4>Company</h4><a href="#">About</a><a href="#">Contact</a><a href="#">Privacy policy</a></div>
+  </div>
+  <div class="fb-bot">
+    <p>© 2026 Fresh Supply UAE. All rights reserved.</p>
+    <p>Made with ❤️ in UAE 🇦🇪</p>
+  </div>
+</footer>
+
+<script>
+const nb = document.getElementById('navbar');
+window.addEventListener('scroll', () => nb.classList.toggle('scrolled', window.scrollY > 20));
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const t = document.querySelector(a.getAttribute('href'));
+    if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth'});}
+  });
+});
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
+}, {threshold:0.1});
+document.querySelectorAll('.how-item,.fc,.tc,.wc,.pc,.logos,.how-grid,.feat-grid,.tg,.who-grid,.pg,.eye,.sh,.sp').forEach((el,i) => {
+  el.classList.add('fade-up');
+  if(i%4===1) el.classList.add('delay-1');
+  if(i%4===2) el.classList.add('delay-2');
+  if(i%4===3) el.classList.add('delay-3');
+  obs.observe(el);
+});
+</script>
+</body>
+</html>
